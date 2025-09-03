@@ -46,9 +46,7 @@ export default function HomePage() {
 
         {/* Right actions */}
         <div className="flex items-center space-x-6">
-          <button className="text-gray-400 hover:text-white text-2xl">
-            🔔
-          </button>
+          
 
           <div className="relative">
             <button
@@ -84,67 +82,74 @@ export default function HomePage() {
         {/* Left Sidebar */}
         <aside className="w-64 bg-black border-r px-4 py-6 flex flex-col justify-between">
           {/* Nav Section */}
-          <nav className="space-y-3">
-            <button
-              onClick={() => setLocation("/create-post")} // <-- fixed
-              className="flex items-center space-x-2 text-gray-400 hover:text-white"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M12 4v16m8-8H4"
-                />
-              </svg>
-              <span>Create Post</span>
-            </button>
+          <nav className="flex flex-col space-y-3">
+          {/* Create Post Button */}
+        <button
+            onClick={() => setLocation("/create-post")}
+            className="flex items-center space-x-2 text-gray-400 hover:text-white w-full"
+          >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            className="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M12 4v16m8-8H4"
+          />
+          </svg>
+          <span>Create Post</span>
+        </button>
 
-            <button className="flex items-center space-x-2 text-gray-400 hover:text-white">
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="w-5 h-5"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth="2"
-                  d="M4 6h16M4 12h8m-8 6h16"
-                />
-              </svg>
+  {/* Controls Button */}
+  <button
+    onClick={() => setLocation("/controls")}
+    className="flex items-center space-x-2 text-gray-400 hover:text-white w-full"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-5 h-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M4 6h16M4 12h8m-8 6h16"
+      />
+    </svg>
+    <span>Controls</span>
+  </button>
 
-              <Link href="/controls">
-                <button className="flex items-center space-x-2 text-gray-400 hover:text-white">
-                  <span>Controls</span>
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    className="w-5 h-5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M12 11c0-1.657 1.343-3 3-3s3 1.343 3 3-1.343 3-3 3-3-1.343-3-3zM6 20h12a2 2 0 002-2V8a2 2 0 00-2-2h-2l-2-2H8L6 6H4a2 2 0 00-2 2v10a2 2 0 002 2h2z"
-                    />
-                  </svg>
-                </button>
-              </Link>
+  {/* Admin Button */}
+  <button
+    onClick={() => setLocation("/admin")}
+    className="flex items-center space-x-2 text-gray-400 hover:text-white w-full"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      className="w-5 h-5"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth="2"
+        d="M12 11c0-1.657 1.343-3 3-3s3 1.343 3 3-1.343 3-3 3-3-1.343-3-3zM6 20h12a2 2 0 002-2V8a2 2 0 00-2-2h-2l-2-2H8L6 6H4a2 2 0 00-2 2v10a2 2 0 002 2h2z"
+      />
+    </svg>
+    <span>Admin</span>
+  </button>
+</nav>
 
-              <span>Admin</span>
-            </button>
-          </nav>
 
           {/* Archive Section */}
           <div className="mt-6 bg-black text-white p-4 rounded-lg">
