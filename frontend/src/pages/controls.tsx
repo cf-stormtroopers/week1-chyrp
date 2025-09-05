@@ -1,18 +1,29 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useLocation } from "wouter";
+import { useAuthStore } from "../state/auth";
+import { updateUserUsersUserIdPut } from "../api/generated";
 
 export default function ControlsPage() {
+  const authStore = useAuthStore()
   const [, navigate] = useLocation();
   const [, setLocation] = useLocation();
 
   const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("ranjithrd03@gmail.com"); // prefilled like your screenshot
-  const [website, setWebsite] = useState("");
+  const [email, setEmail] = useState(""); // prefilled like your screenshot
+  // const [website, setWebsite] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [changePassword, setChangePassword] = useState(false);
 
-  const handleUpdate = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (authStore.accountInformation) {
+      setFullName(authStore.accountInformation.display_name || "");
+      setEmail(authStore.accountInformation.email || "");
+    }
+  }, [authStore.accountInformation])
+
+  const handleUpdate = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (password && password !== confirm) {
@@ -20,11 +31,27 @@ export default function ControlsPage() {
       return;
     }
 
-    // For now, just show a success message
-    alert("Profile updated successfully!");
+    try {
+      if (!authStore.accountInformation) {
+        alert("No account information found.");
+        return;
+      }
 
-    // Navigate back to home
-    navigate("/");
+      await updateUserUsersUserIdPut(authStore.accountInformation.id, {
+        display_name: fullName,
+        password: password || undefined,
+      });
+
+      authStore.mutate();
+
+      alert("Profile updated successfully!");
+
+      // Navigate back to home
+      navigate("/");
+    } catch (e) {
+      alert("An error occurred while updating profile.");
+      console.error(e);
+    }
   };
 
   return (
@@ -40,9 +67,21 @@ export default function ControlsPage() {
           </button>
         </div>
 
-        <h2 className="text-2xl font-bold mb-6">Controls</h2>
+        <h2 className="text-2xl font-bold mb-6">Account</h2>
 
         <form className="space-y-4" onSubmit={handleUpdate}>
+          {/* Email */}
+          <div className="cursor-not-allowed">
+            <label className="block font-medium mb-1">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full border rounded px-3 py-2"
+              disabled
+            />
+          </div>
+
           {/* Full name */}
           <div>
             <label className="block font-medium mb-1">Full name</label>
@@ -54,49 +93,45 @@ export default function ControlsPage() {
             />
           </div>
 
-          {/* Email */}
-          <div>
-            <label className="block font-medium mb-1">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
 
-          {/* Website */}
-          <div>
-            <label className="block font-medium mb-1">Website</label>
-            <input
-              type="url"
-              value={website}
-              onChange={(e) => setWebsite(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
 
-          {/* New password */}
-          <div>
-            <label className="block font-medium mb-1">New password?</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
-
-          {/* Confirm */}
-          <div>
-            <label className="block font-medium mb-1">Confirm</label>
-            <input
-              type="password"
-              value={confirm}
-              onChange={(e) => setConfirm(e.target.value)}
-              className="w-full border rounded px-3 py-2"
-            />
-          </div>
+          {changePassword ? <>
+            {/* New password */}
+            <div>
+              <button
+                type="button"
+                onClick={() => setChangePassword(false)}
+                className="text-sm text-gray-400 underline mb-4"
+              >
+                Cancel
+              </button>
+              <label className="block font-medium mb-1">New password?</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+            {/* Confirm */}
+            <div>
+              <label className="block font-medium mb-1">Confirm</label>
+              <input
+                type="password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
+                className="w-full border rounded px-3 py-2"
+              />
+            </div>
+          </> : (
+            <button
+              type="button"
+              onClick={() => setChangePassword(true)}
+              className="text-sm text-gray-400 underline"
+            >
+              Change Password
+            </button>
+          )}
 
           {/* Update button */}
           <button

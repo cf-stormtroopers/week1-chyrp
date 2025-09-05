@@ -22,6 +22,39 @@ export default function Sidebar() {
     const [openMonth, setOpenMonth] = useState<string | null>(null);
 
     return <aside className="w-64 bg-black border-r px-4 py-6 flex flex-col justify-between">
+        {/* Archive Section */}
+        <div className=" bg-black text-white p-4 rounded-lg flex flex-col gap-2">
+            <h3 className="font-bold ">Archive</h3>
+
+            {Object.entries(archiveData ?? {}).map(([monthYear, posts]) => (
+                <div key={monthYear}>
+                    <button
+                        className="w-full text-left px-3 py-2 bg-gray-800 rounded hover:bg-gray-700 font-semibold"
+                        onClick={() =>
+                            setOpenMonth(openMonth === monthYear ? null : monthYear)
+                        }
+                    >
+                        {monthYear}
+                    </button>
+
+                    {openMonth === monthYear && (
+                        <div className="mt-2 ml-3 space-y-2">
+                            {posts.map((post, idx) => (
+                                <div
+                                    key={idx}
+                                    // to={post.link}
+                                    className="block px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm"
+                                >
+                                    {post.title}
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            ))}
+
+        </div>
+
         {/* Nav Section */}
         <nav className="flex flex-col space-y-3">
             {/* Create Post Button */}
@@ -44,7 +77,7 @@ export default function Sidebar() {
             </Link>
 
             {/* Controls Button */}
-            <Link
+            {/* <Link
                 to="/controls"
                 className="flex items-center space-x-2 text-gray-400 hover:text-white w-full"
             >
@@ -63,7 +96,7 @@ export default function Sidebar() {
                     />
                 </svg>
                 <span>Controls</span>
-            </Link>
+            </Link> */}
 
             {/* Admin Button */}
             <Link
@@ -87,39 +120,5 @@ export default function Sidebar() {
                 <span>Admin</span>
             </Link>
         </nav>
-
-
-        {/* Archive Section */}
-        <div className=" bg-black text-white p-4 rounded-lg">
-            <h3 className="font-bold ">Archive</h3>
-          
-                {Object.entries(archiveData ?? {}).map(([monthYear, posts]) => (
-                    <div key={monthYear}>
-                        <button
-                            className="w-full text-left px-3 py-2 bg-gray-800 rounded hover:bg-gray-700 font-semibold"
-                            onClick={() =>
-                                setOpenMonth(openMonth === monthYear ? null : monthYear)
-                            }
-                        >
-                            {monthYear}
-                        </button>
-
-                        {openMonth === monthYear && (
-                            <div className="mt-2 ml-3 space-y-2">
-                                {posts.map((post, idx) => (
-                                    <div
-                                        key={idx}
-                                        // to={post.link}
-                                        className="block px-3 py-2 bg-gray-700 rounded hover:bg-gray-600 text-sm"
-                                    >
-                                        {post.title}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                ))}
-            
-        </div>
     </aside>
 }

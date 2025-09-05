@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { logoutAuthLogoutPost, useLogoutAuthLogoutPost, type UserRead } from "../api/generated";
+import { mutate } from "swr";
 
 export interface Extensions {
   likes: boolean
@@ -28,6 +29,7 @@ export interface AuthState {
   reset: () => void;
 
   logout: () => Promise<void>
+  mutate: () => void
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
@@ -57,5 +59,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       accountInformation: null,
       loggedIn: false
     })
-  }
+  },
+
+  mutate: () => mutate("/site/info")
 }));

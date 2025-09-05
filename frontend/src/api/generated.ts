@@ -468,6 +468,8 @@ export type UserUpdateBio = string | null;
 
 export type UserUpdateAvatarUrl = string | null;
 
+export type UserUpdatePassword = string | null;
+
 /**
  * Model for user updates.
  */
@@ -475,6 +477,7 @@ export interface UserUpdate {
   display_name?: UserUpdateDisplayName;
   bio?: UserUpdateBio;
   avatar_url?: UserUpdateAvatarUrl;
+  password?: UserUpdatePassword;
 }
 
 export type ValidationErrorLocItem = string | number;
