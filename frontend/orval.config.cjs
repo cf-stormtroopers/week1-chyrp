@@ -4,7 +4,12 @@ module.exports = {
     output: {
       target: "./src/api/generated.ts",
       client: "swr",
-      baseUrl: "http://100.109.46.43:8007"
+      override: {
+        mutator: {
+          path: "./src/api/axios.ts",
+          name: "customInstance"
+        }
+      }
     },
   },
 };

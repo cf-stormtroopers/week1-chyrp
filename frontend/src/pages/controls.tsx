@@ -4,6 +4,7 @@ import { useLocation } from "wouter";
 
 export default function ControlsPage() {
   const [, navigate] = useLocation();
+  const [, setLocation] = useLocation();
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("ranjithrd03@gmail.com"); // prefilled like your screenshot
@@ -28,8 +29,19 @@ export default function ControlsPage() {
 
   return (
     <div className="min-h-screen bg-gray-800 flex items-center justify-center p-6">
-      <div className="bg-black shadow-lg rounded-lg p-8 w-full max-w-md">
+      <div className="bg-black shadow-lg rounded-lg p-8 w-full max-w-md space-y-6">
+        {/* Back Button */}
+        <div className="flex justify-end">
+          <button
+            onClick={() => setLocation("/")}
+            className="text-gray-500 hover:text-red-500 text-xl font-bold"
+          >
+            ✕
+          </button>
+        </div>
+
         <h2 className="text-2xl font-bold mb-6">Controls</h2>
+
         <form className="space-y-4" onSubmit={handleUpdate}>
           {/* Full name */}
           <div>

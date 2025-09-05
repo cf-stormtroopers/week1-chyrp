@@ -1,47 +1,61 @@
 import { create } from "zustand";
-import type { UserRead } from "../api/generated";
+import { logoutAuthLogoutPost, useLogoutAuthLogoutPost, type UserRead } from "../api/generated";
+
+export interface Extensions {
+  likes: boolean
+  views: boolean
+  comments: boolean
+  tags: boolean
+}
+
+const EmptyExtensions = {
+  likes: false,
+  comments: false,
+  views: false,
+  tags: false
+}
 
 export interface AuthState {
   blogTitle: string;
-  extensions: string[];
+  extensions: Extensions;
   loggedIn: boolean;
   accountInformation: UserRead | null;
 
   setBlogTitle: (title: string) => void;
-  addExtension: (ext: string) => void;
-  removeExtension: (ext: string) => void;
-  clearExtensions: () => void;
+  setExtensions: (extensions: Extensions) => void;
   setLoggedIn: (status: boolean) => void;
   setAccountInformation: (info: UserRead | null) => void;
   reset: () => void;
+
+  logout: () => Promise<void>
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   blogTitle: "",
-  extensions: [],
+  extensions: EmptyExtensions,
   loggedIn: false,
   accountInformation: null,
 
   setBlogTitle: (title) => set({ blogTitle: title }),
-  addExtension: (ext) =>
-    set((state) => ({
-      extensions: state.extensions.includes(ext)
-        ? state.extensions
-        : [...state.extensions, ext],
-    })),
-  removeExtension: (ext) =>
-    set((state) => ({
-      extensions: state.extensions.filter((e) => e !== ext),
-    })),
-  clearExtensions: () => set({ extensions: [] }),
+  setExtensions: (exts: Extensions) => {
+    set({ extensions: exts });
+  },
   setLoggedIn: (status) => set({ loggedIn: status }),
   setAccountInformation: (info) => set({ accountInformation: info }),
 
   reset: () =>
     set({
       blogTitle: "",
-      extensions: [],
+      extensions: EmptyExtensions,
       loggedIn: false,
       accountInformation: null,
     }),
+
+  logout: async () => {
+    await logoutAuthLogoutPost()
+    set({
+      accountInformation: null,
+      loggedIn: false
+    })
+  }
 }));

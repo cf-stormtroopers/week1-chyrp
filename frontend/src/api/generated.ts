@@ -5,13 +5,6 @@
  * A scalable blog backend built with FastAPI and SQLModel
  * OpenAPI spec version: 1.0.0
  */
-import * as axios from 'axios';
-import type {
-  AxiosError,
-  AxiosRequestConfig,
-  AxiosResponse
-} from 'axios';
-
 import useSwr from 'swr';
 import type {
   Arguments,
@@ -24,6 +17,7 @@ import type {
   SWRMutationConfiguration
 } from 'swr/mutation';
 
+import { customInstance } from './axios';
 /**
  * Associated post ID
  */
@@ -148,6 +142,31 @@ export interface CommentUpdate {
   status?: CommentUpdateStatus;
 }
 
+export type ExtensionInfoVersion = string | null;
+
+export type ExtensionInfoConfigAnyOf = { [key: string]: unknown };
+
+export type ExtensionInfoConfig = ExtensionInfoConfigAnyOf | null;
+
+/**
+ * Model for extension information.
+ */
+export interface ExtensionInfo {
+  id: number;
+  name: string;
+  slug: string;
+  version: ExtensionInfoVersion;
+  is_active: boolean;
+  config: ExtensionInfoConfig;
+}
+
+/**
+ * Model for extensions list response.
+ */
+export interface ExtensionsResponse {
+  extensions: ExtensionInfo[];
+}
+
 export interface HTTPValidationError {
   detail?: ValidationError[];
 }
@@ -181,6 +200,10 @@ export type PostCreateMediaUrl = string | null;
 
 export type PostCreateLinkUrl = string | null;
 
+export type PostCreateMediaType = string | null;
+
+export type PostCreateQuoteSource = string | null;
+
 /**
  * Model for post creation.
  */
@@ -196,11 +219,51 @@ export interface PostCreate {
   markdown_content?: PostCreateMarkdownContent;
   media_url?: PostCreateMediaUrl;
   link_url?: PostCreateLinkUrl;
+  media_type?: PostCreateMediaType;
+  quote_source?: PostCreateQuoteSource;
+}
+
+export type PostFileId = string | null;
+
+export type PostFilePostId = string | null;
+
+export type PostFileFileType = string | null;
+
+export type PostFileFileSize = number | null;
+
+export type PostFileDescription = string | null;
+
+/**
+ * Post file model - for file attachments.
+ */
+export interface PostFile {
+  id?: PostFileId;
+  post_id?: PostFilePostId;
+  /** @maxLength 255 */
+  file_url: string;
+  /** @maxLength 255 */
+  filename: string;
+  file_type?: PostFileFileType;
+  file_size?: PostFileFileSize;
+  description?: PostFileDescription;
+  uploaded_at?: string;
 }
 
 export type PostFileReadPostId = string | null;
 
+export type PostFileReadFilename = string | null;
+
+export type PostFileReadFilePath = string | null;
+
+export type PostFileReadMimeType = string | null;
+
+export type PostFileReadFileSize = number | null;
+
 export type PostFileReadDescription = string | null;
+
+export type PostFileReadCreatedAt = string | null;
+
+export type PostFileReadUpdatedAt = string | null;
 
 /**
  * Model for file response.
@@ -208,13 +271,13 @@ export type PostFileReadDescription = string | null;
 export interface PostFileRead {
   id: string;
   post_id: PostFileReadPostId;
-  filename: string;
-  file_path: string;
-  mime_type: string;
-  file_size: number;
+  filename: PostFileReadFilename;
+  file_path: PostFileReadFilePath;
+  mime_type: PostFileReadMimeType;
+  file_size: PostFileReadFileSize;
   description: PostFileReadDescription;
-  created_at: string;
-  updated_at: string;
+  created_at: PostFileReadCreatedAt;
+  updated_at: PostFileReadUpdatedAt;
 }
 
 export type PostReadTitle = string | null;
@@ -229,12 +292,21 @@ export type PostReadContent = string | null;
 
 export type PostReadExcerpt = string | null;
 
+export type PostReadMediaUrl = string | null;
+
+export type PostReadMediaType = string | null;
+
+export type PostReadQuoteSource = string | null;
+
+export type PostReadLinkUrl = string | null;
+
 /**
  * Model for post response.
  */
 export interface PostRead {
   id: string;
   author_id: string;
+  author_name: string;
   feather_type: string;
   slug: string;
   title: PostReadTitle;
@@ -249,6 +321,10 @@ export interface PostRead {
   likes_count?: number;
   content?: PostReadContent;
   excerpt?: PostReadExcerpt;
+  media_url?: PostReadMediaUrl;
+  media_type?: PostReadMediaType;
+  quote_source?: PostReadQuoteSource;
+  link_url?: PostReadLinkUrl;
 }
 
 /**
@@ -284,6 +360,25 @@ export interface PostUpdate {
   is_private?: PostUpdateIsPrivate;
   content?: PostUpdateContent;
   markdown_content?: PostUpdateMarkdownContent;
+}
+
+export type SiteInfoResponseUser = UserRead | null;
+
+export type SiteInfoResponseTheme = string | null;
+
+export type SiteInfoResponseSettings = { [key: string]: unknown };
+
+/**
+ * Model for site information response.
+ */
+export interface SiteInfoResponse {
+  user?: SiteInfoResponseUser;
+  blog_title: string;
+  blog_description: string;
+  extensions: string[];
+  theme: SiteInfoResponseTheme;
+  settings: SiteInfoResponseSettings;
+  features: string[];
 }
 
 /**
@@ -503,42 +598,52 @@ skip?: number;
 limit?: number;
 };
 
+export type GetExtensionsSiteExtensionsGetParams = {
+active_only?: boolean;
+};
+
+type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
+
+
+  
 /**
  * Register a new user.
  * @summary Register
  */
 export const registerAuthRegisterPost = (
-    userCreate: UserCreate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<UserRead>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/auth/register`,
-      userCreate,options
-    );
+    userCreate: UserCreate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<UserRead>(
+    {url: `/auth/register`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: userCreate
+    },
+    options);
   }
 
 
 
-export const getRegisterAuthRegisterPostMutationFetcher = ( options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: UserCreate }): Promise<AxiosResponse<UserRead>> => {
+export const getRegisterAuthRegisterPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: UserCreate }): Promise<UserRead> => {
     return registerAuthRegisterPost(arg, options);
   }
 }
-export const getRegisterAuthRegisterPostMutationKey = () => [`http://100.109.46.43:8007/auth/register`] as const;
+export const getRegisterAuthRegisterPostMutationKey = () => [`/auth/register`] as const;
 
 export type RegisterAuthRegisterPostMutationResult = NonNullable<Awaited<ReturnType<typeof registerAuthRegisterPost>>>
-export type RegisterAuthRegisterPostMutationError = AxiosError<HTTPValidationError>
+export type RegisterAuthRegisterPostMutationError = HTTPValidationError
 
 /**
  * @summary Register
  */
-export const useRegisterAuthRegisterPost = <TError = AxiosError<HTTPValidationError>>(
-   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof registerAuthRegisterPost>>, TError, Key, UserCreate, Awaited<ReturnType<typeof registerAuthRegisterPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useRegisterAuthRegisterPost = <TError = HTTPValidationError>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof registerAuthRegisterPost>>, TError, Key, UserCreate, Awaited<ReturnType<typeof registerAuthRegisterPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getRegisterAuthRegisterPostMutationKey();
-  const swrFn = getRegisterAuthRegisterPostMutationFetcher(axiosOptions);
+  const swrFn = getRegisterAuthRegisterPostMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -553,37 +658,39 @@ export const useRegisterAuthRegisterPost = <TError = AxiosError<HTTPValidationEr
  * @summary Login
  */
 export const loginAuthLoginPost = (
-    userLogin: UserLogin, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/auth/login`,
-      userLogin,options
-    );
+    userLogin: UserLogin,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/auth/login`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: userLogin
+    },
+    options);
   }
 
 
 
-export const getLoginAuthLoginPostMutationFetcher = ( options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: UserLogin }): Promise<AxiosResponse<unknown>> => {
+export const getLoginAuthLoginPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: UserLogin }): Promise<unknown> => {
     return loginAuthLoginPost(arg, options);
   }
 }
-export const getLoginAuthLoginPostMutationKey = () => [`http://100.109.46.43:8007/auth/login`] as const;
+export const getLoginAuthLoginPostMutationKey = () => [`/auth/login`] as const;
 
 export type LoginAuthLoginPostMutationResult = NonNullable<Awaited<ReturnType<typeof loginAuthLoginPost>>>
-export type LoginAuthLoginPostMutationError = AxiosError<HTTPValidationError>
+export type LoginAuthLoginPostMutationError = HTTPValidationError
 
 /**
  * @summary Login
  */
-export const useLoginAuthLoginPost = <TError = AxiosError<HTTPValidationError>>(
-   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof loginAuthLoginPost>>, TError, Key, UserLogin, Awaited<ReturnType<typeof loginAuthLoginPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useLoginAuthLoginPost = <TError = HTTPValidationError>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof loginAuthLoginPost>>, TError, Key, UserLogin, Awaited<ReturnType<typeof loginAuthLoginPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getLoginAuthLoginPostMutationKey();
-  const swrFn = getLoginAuthLoginPostMutationFetcher(axiosOptions);
+  const swrFn = getLoginAuthLoginPostMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -598,36 +705,37 @@ export const useLoginAuthLoginPost = <TError = AxiosError<HTTPValidationError>>(
  * @summary Logout
  */
 export const logoutAuthLogoutPost = (
-     options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/auth/logout`,undefined,options
-    );
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/auth/logout`, method: 'POST'
+    },
+    options);
   }
 
 
 
-export const getLogoutAuthLogoutPostMutationFetcher = ( options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<unknown>> => {
+export const getLogoutAuthLogoutPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
     return logoutAuthLogoutPost(options);
   }
 }
-export const getLogoutAuthLogoutPostMutationKey = () => [`http://100.109.46.43:8007/auth/logout`] as const;
+export const getLogoutAuthLogoutPostMutationKey = () => [`/auth/logout`] as const;
 
 export type LogoutAuthLogoutPostMutationResult = NonNullable<Awaited<ReturnType<typeof logoutAuthLogoutPost>>>
-export type LogoutAuthLogoutPostMutationError = AxiosError<unknown>
+export type LogoutAuthLogoutPostMutationError = unknown
 
 /**
  * @summary Logout
  */
-export const useLogoutAuthLogoutPost = <TError = AxiosError<unknown>>(
-   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof logoutAuthLogoutPost>>, TError, Key, Arguments, Awaited<ReturnType<typeof logoutAuthLogoutPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useLogoutAuthLogoutPost = <TError = unknown>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof logoutAuthLogoutPost>>, TError, Key, Arguments, Awaited<ReturnType<typeof logoutAuthLogoutPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getLogoutAuthLogoutPostMutationKey();
-  const swrFn = getLogoutAuthLogoutPostMutationFetcher(axiosOptions);
+  const swrFn = getLogoutAuthLogoutPostMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -642,31 +750,32 @@ export const useLogoutAuthLogoutPost = <TError = AxiosError<unknown>>(
  * @summary Get Current User Info
  */
 export const getCurrentUserInfoAuthMeGet = (
-     options?: AxiosRequestConfig
- ): Promise<AxiosResponse<UserRead>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/auth/me`,options
-    );
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<UserRead>(
+    {url: `/auth/me`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getGetCurrentUserInfoAuthMeGetKey = () => [`http://100.109.46.43:8007/auth/me`] as const;
+export const getGetCurrentUserInfoAuthMeGetKey = () => [`/auth/me`] as const;
 
 export type GetCurrentUserInfoAuthMeGetQueryResult = NonNullable<Awaited<ReturnType<typeof getCurrentUserInfoAuthMeGet>>>
-export type GetCurrentUserInfoAuthMeGetQueryError = AxiosError<unknown>
+export type GetCurrentUserInfoAuthMeGetQueryError = unknown
 
 /**
  * @summary Get Current User Info
  */
-export const useGetCurrentUserInfoAuthMeGet = <TError = AxiosError<unknown>>(
-   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getCurrentUserInfoAuthMeGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useGetCurrentUserInfoAuthMeGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getCurrentUserInfoAuthMeGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetCurrentUserInfoAuthMeGetKey() : null);
-  const swrFn = () => getCurrentUserInfoAuthMeGet(axiosOptions)
+  const swrFn = () => getCurrentUserInfoAuthMeGet(requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -681,36 +790,37 @@ export const useGetCurrentUserInfoAuthMeGet = <TError = AxiosError<unknown>>(
  * @summary Logout All Sessions
  */
 export const logoutAllSessionsAuthLogoutAllPost = (
-     options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/auth/logout-all`,undefined,options
-    );
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/auth/logout-all`, method: 'POST'
+    },
+    options);
   }
 
 
 
-export const getLogoutAllSessionsAuthLogoutAllPostMutationFetcher = ( options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<unknown>> => {
+export const getLogoutAllSessionsAuthLogoutAllPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
     return logoutAllSessionsAuthLogoutAllPost(options);
   }
 }
-export const getLogoutAllSessionsAuthLogoutAllPostMutationKey = () => [`http://100.109.46.43:8007/auth/logout-all`] as const;
+export const getLogoutAllSessionsAuthLogoutAllPostMutationKey = () => [`/auth/logout-all`] as const;
 
 export type LogoutAllSessionsAuthLogoutAllPostMutationResult = NonNullable<Awaited<ReturnType<typeof logoutAllSessionsAuthLogoutAllPost>>>
-export type LogoutAllSessionsAuthLogoutAllPostMutationError = AxiosError<unknown>
+export type LogoutAllSessionsAuthLogoutAllPostMutationError = unknown
 
 /**
  * @summary Logout All Sessions
  */
-export const useLogoutAllSessionsAuthLogoutAllPost = <TError = AxiosError<unknown>>(
-   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof logoutAllSessionsAuthLogoutAllPost>>, TError, Key, Arguments, Awaited<ReturnType<typeof logoutAllSessionsAuthLogoutAllPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useLogoutAllSessionsAuthLogoutAllPost = <TError = unknown>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof logoutAllSessionsAuthLogoutAllPost>>, TError, Key, Arguments, Awaited<ReturnType<typeof logoutAllSessionsAuthLogoutAllPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getLogoutAllSessionsAuthLogoutAllPostMutationKey();
-  const swrFn = getLogoutAllSessionsAuthLogoutAllPostMutationFetcher(axiosOptions);
+  const swrFn = getLogoutAllSessionsAuthLogoutAllPostMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -725,33 +835,33 @@ export const useLogoutAllSessionsAuthLogoutAllPost = <TError = AxiosError<unknow
  * @summary List Users
  */
 export const listUsersUsersGet = (
-    params?: ListUsersUsersGetParams, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<UserRead[]>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/users/`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+    params?: ListUsersUsersGetParams,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<UserRead[]>(
+    {url: `/users/`, method: 'GET',
+        params
+    },
+    options);
   }
 
 
 
-export const getListUsersUsersGetKey = (params?: ListUsersUsersGetParams,) => [`http://100.109.46.43:8007/users/`, ...(params ? [params]: [])] as const;
+export const getListUsersUsersGetKey = (params?: ListUsersUsersGetParams,) => [`/users/`, ...(params ? [params]: [])] as const;
 
 export type ListUsersUsersGetQueryResult = NonNullable<Awaited<ReturnType<typeof listUsersUsersGet>>>
-export type ListUsersUsersGetQueryError = AxiosError<HTTPValidationError>
+export type ListUsersUsersGetQueryError = HTTPValidationError
 
 /**
  * @summary List Users
  */
-export const useListUsersUsersGet = <TError = AxiosError<HTTPValidationError>>(
-  params?: ListUsersUsersGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listUsersUsersGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useListUsersUsersGet = <TError = HTTPValidationError>(
+  params?: ListUsersUsersGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listUsersUsersGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getListUsersUsersGetKey(params) : null);
-  const swrFn = () => listUsersUsersGet(params, axiosOptions)
+  const swrFn = () => listUsersUsersGet(params, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -766,31 +876,32 @@ export const useListUsersUsersGet = <TError = AxiosError<HTTPValidationError>>(
  * @summary Get User
  */
 export const getUserUsersUserIdGet = (
-    userId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<UserRead>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/users/${userId}`,options
-    );
+    userId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<UserRead>(
+    {url: `/users/${userId}`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getGetUserUsersUserIdGetKey = (userId: string,) => [`http://100.109.46.43:8007/users/${userId}`] as const;
+export const getGetUserUsersUserIdGetKey = (userId: string,) => [`/users/${userId}`] as const;
 
 export type GetUserUsersUserIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getUserUsersUserIdGet>>>
-export type GetUserUsersUserIdGetQueryError = AxiosError<HTTPValidationError>
+export type GetUserUsersUserIdGetQueryError = HTTPValidationError
 
 /**
  * @summary Get User
  */
-export const useGetUserUsersUserIdGet = <TError = AxiosError<HTTPValidationError>>(
-  userId: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getUserUsersUserIdGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useGetUserUsersUserIdGet = <TError = HTTPValidationError>(
+  userId: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getUserUsersUserIdGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false && !!(userId)
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetUserUsersUserIdGetKey(userId) : null);
-  const swrFn = () => getUserUsersUserIdGet(userId, axiosOptions)
+  const swrFn = () => getUserUsersUserIdGet(userId, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -806,37 +917,39 @@ export const useGetUserUsersUserIdGet = <TError = AxiosError<HTTPValidationError
  */
 export const updateUserUsersUserIdPut = (
     userId: string,
-    userUpdate: UserUpdate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<UserRead>> => {
-    return axios.default.put(
-      `http://100.109.46.43:8007/users/${userId}`,
-      userUpdate,options
-    );
+    userUpdate: UserUpdate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<UserRead>(
+    {url: `/users/${userId}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: userUpdate
+    },
+    options);
   }
 
 
 
-export const getUpdateUserUsersUserIdPutMutationFetcher = (userId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: UserUpdate }): Promise<AxiosResponse<UserRead>> => {
+export const getUpdateUserUsersUserIdPutMutationFetcher = (userId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: UserUpdate }): Promise<UserRead> => {
     return updateUserUsersUserIdPut(userId, arg, options);
   }
 }
-export const getUpdateUserUsersUserIdPutMutationKey = (userId: string,) => [`http://100.109.46.43:8007/users/${userId}`] as const;
+export const getUpdateUserUsersUserIdPutMutationKey = (userId: string,) => [`/users/${userId}`] as const;
 
 export type UpdateUserUsersUserIdPutMutationResult = NonNullable<Awaited<ReturnType<typeof updateUserUsersUserIdPut>>>
-export type UpdateUserUsersUserIdPutMutationError = AxiosError<HTTPValidationError>
+export type UpdateUserUsersUserIdPutMutationError = HTTPValidationError
 
 /**
  * @summary Update User
  */
-export const useUpdateUserUsersUserIdPut = <TError = AxiosError<HTTPValidationError>>(
-  userId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updateUserUsersUserIdPut>>, TError, Key, UserUpdate, Awaited<ReturnType<typeof updateUserUsersUserIdPut>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useUpdateUserUsersUserIdPut = <TError = HTTPValidationError>(
+  userId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updateUserUsersUserIdPut>>, TError, Key, UserUpdate, Awaited<ReturnType<typeof updateUserUsersUserIdPut>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getUpdateUserUsersUserIdPutMutationKey(userId);
-  const swrFn = getUpdateUserUsersUserIdPutMutationFetcher(userId, axiosOptions);
+  const swrFn = getUpdateUserUsersUserIdPutMutationFetcher(userId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -851,36 +964,37 @@ export const useUpdateUserUsersUserIdPut = <TError = AxiosError<HTTPValidationEr
  * @summary Delete User
  */
 export const deleteUserUsersUserIdDelete = (
-    userId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.delete(
-      `http://100.109.46.43:8007/users/${userId}`,options
-    );
+    userId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/users/${userId}`, method: 'DELETE'
+    },
+    options);
   }
 
 
 
-export const getDeleteUserUsersUserIdDeleteMutationFetcher = (userId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<unknown>> => {
+export const getDeleteUserUsersUserIdDeleteMutationFetcher = (userId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
     return deleteUserUsersUserIdDelete(userId, options);
   }
 }
-export const getDeleteUserUsersUserIdDeleteMutationKey = (userId: string,) => [`http://100.109.46.43:8007/users/${userId}`] as const;
+export const getDeleteUserUsersUserIdDeleteMutationKey = (userId: string,) => [`/users/${userId}`] as const;
 
 export type DeleteUserUsersUserIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteUserUsersUserIdDelete>>>
-export type DeleteUserUsersUserIdDeleteMutationError = AxiosError<HTTPValidationError>
+export type DeleteUserUsersUserIdDeleteMutationError = HTTPValidationError
 
 /**
  * @summary Delete User
  */
-export const useDeleteUserUsersUserIdDelete = <TError = AxiosError<HTTPValidationError>>(
-  userId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteUserUsersUserIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteUserUsersUserIdDelete>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useDeleteUserUsersUserIdDelete = <TError = HTTPValidationError>(
+  userId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteUserUsersUserIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteUserUsersUserIdDelete>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getDeleteUserUsersUserIdDeleteMutationKey(userId);
-  const swrFn = getDeleteUserUsersUserIdDeleteMutationFetcher(userId, axiosOptions);
+  const swrFn = getDeleteUserUsersUserIdDeleteMutationFetcher(userId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -898,33 +1012,33 @@ Private/draft posts are only visible to authenticated users.
  * @summary List Posts
  */
 export const listPostsPostsGet = (
-    params?: ListPostsPostsGetParams, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<PostRead[]>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/posts`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+    params?: ListPostsPostsGetParams,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<PostRead[]>(
+    {url: `/posts`, method: 'GET',
+        params
+    },
+    options);
   }
 
 
 
-export const getListPostsPostsGetKey = (params?: ListPostsPostsGetParams,) => [`http://100.109.46.43:8007/posts`, ...(params ? [params]: [])] as const;
+export const getListPostsPostsGetKey = (params?: ListPostsPostsGetParams,) => [`/posts`, ...(params ? [params]: [])] as const;
 
 export type ListPostsPostsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listPostsPostsGet>>>
-export type ListPostsPostsGetQueryError = AxiosError<HTTPValidationError>
+export type ListPostsPostsGetQueryError = HTTPValidationError
 
 /**
  * @summary List Posts
  */
-export const useListPostsPostsGet = <TError = AxiosError<HTTPValidationError>>(
-  params?: ListPostsPostsGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listPostsPostsGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useListPostsPostsGet = <TError = HTTPValidationError>(
+  params?: ListPostsPostsGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listPostsPostsGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getListPostsPostsGetKey(params) : null);
-  const swrFn = () => listPostsPostsGet(params, axiosOptions)
+  const swrFn = () => listPostsPostsGet(params, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -942,37 +1056,39 @@ Requires authentication.
  * @summary Create Post
  */
 export const createPostPostsPost = (
-    postCreate: PostCreate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<PostRead>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/posts`,
-      postCreate,options
-    );
+    postCreate: PostCreate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<PostRead>(
+    {url: `/posts`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: postCreate
+    },
+    options);
   }
 
 
 
-export const getCreatePostPostsPostMutationFetcher = ( options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: PostCreate }): Promise<AxiosResponse<PostRead>> => {
+export const getCreatePostPostsPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: PostCreate }): Promise<PostRead> => {
     return createPostPostsPost(arg, options);
   }
 }
-export const getCreatePostPostsPostMutationKey = () => [`http://100.109.46.43:8007/posts`] as const;
+export const getCreatePostPostsPostMutationKey = () => [`/posts`] as const;
 
 export type CreatePostPostsPostMutationResult = NonNullable<Awaited<ReturnType<typeof createPostPostsPost>>>
-export type CreatePostPostsPostMutationError = AxiosError<HTTPValidationError>
+export type CreatePostPostsPostMutationError = HTTPValidationError
 
 /**
  * @summary Create Post
  */
-export const useCreatePostPostsPost = <TError = AxiosError<HTTPValidationError>>(
-   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createPostPostsPost>>, TError, Key, PostCreate, Awaited<ReturnType<typeof createPostPostsPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useCreatePostPostsPost = <TError = HTTPValidationError>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createPostPostsPost>>, TError, Key, PostCreate, Awaited<ReturnType<typeof createPostPostsPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getCreatePostPostsPostMutationKey();
-  const swrFn = getCreatePostPostsPostMutationFetcher(axiosOptions);
+  const swrFn = getCreatePostPostsPostMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -990,31 +1106,32 @@ Private/draft posts require authentication.
  * @summary Get Post
  */
 export const getPostPostsPostIdGet = (
-    postId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<PostRead>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/posts/${postId}`,options
-    );
+    postId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<PostRead>(
+    {url: `/posts/${postId}`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getGetPostPostsPostIdGetKey = (postId: string,) => [`http://100.109.46.43:8007/posts/${postId}`] as const;
+export const getGetPostPostsPostIdGetKey = (postId: string,) => [`/posts/${postId}`] as const;
 
 export type GetPostPostsPostIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getPostPostsPostIdGet>>>
-export type GetPostPostsPostIdGetQueryError = AxiosError<HTTPValidationError>
+export type GetPostPostsPostIdGetQueryError = HTTPValidationError
 
 /**
  * @summary Get Post
  */
-export const useGetPostPostsPostIdGet = <TError = AxiosError<HTTPValidationError>>(
-  postId: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getPostPostsPostIdGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useGetPostPostsPostIdGet = <TError = HTTPValidationError>(
+  postId: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getPostPostsPostIdGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false && !!(postId)
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetPostPostsPostIdGetKey(postId) : null);
-  const swrFn = () => getPostPostsPostIdGet(postId, axiosOptions)
+  const swrFn = () => getPostPostsPostIdGet(postId, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -1032,37 +1149,39 @@ Only the author or users with appropriate permissions can update posts.
  */
 export const updatePostPostsPostIdPut = (
     postId: string,
-    postUpdate: PostUpdate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<PostRead>> => {
-    return axios.default.put(
-      `http://100.109.46.43:8007/posts/${postId}`,
-      postUpdate,options
-    );
+    postUpdate: PostUpdate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<PostRead>(
+    {url: `/posts/${postId}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: postUpdate
+    },
+    options);
   }
 
 
 
-export const getUpdatePostPostsPostIdPutMutationFetcher = (postId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: PostUpdate }): Promise<AxiosResponse<PostRead>> => {
+export const getUpdatePostPostsPostIdPutMutationFetcher = (postId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: PostUpdate }): Promise<PostRead> => {
     return updatePostPostsPostIdPut(postId, arg, options);
   }
 }
-export const getUpdatePostPostsPostIdPutMutationKey = (postId: string,) => [`http://100.109.46.43:8007/posts/${postId}`] as const;
+export const getUpdatePostPostsPostIdPutMutationKey = (postId: string,) => [`/posts/${postId}`] as const;
 
 export type UpdatePostPostsPostIdPutMutationResult = NonNullable<Awaited<ReturnType<typeof updatePostPostsPostIdPut>>>
-export type UpdatePostPostsPostIdPutMutationError = AxiosError<HTTPValidationError>
+export type UpdatePostPostsPostIdPutMutationError = HTTPValidationError
 
 /**
  * @summary Update Post
  */
-export const useUpdatePostPostsPostIdPut = <TError = AxiosError<HTTPValidationError>>(
-  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updatePostPostsPostIdPut>>, TError, Key, PostUpdate, Awaited<ReturnType<typeof updatePostPostsPostIdPut>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useUpdatePostPostsPostIdPut = <TError = HTTPValidationError>(
+  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updatePostPostsPostIdPut>>, TError, Key, PostUpdate, Awaited<ReturnType<typeof updatePostPostsPostIdPut>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getUpdatePostPostsPostIdPutMutationKey(postId);
-  const swrFn = getUpdatePostPostsPostIdPutMutationFetcher(postId, axiosOptions);
+  const swrFn = getUpdatePostPostsPostIdPutMutationFetcher(postId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1079,36 +1198,37 @@ Only the author or users with appropriate permissions can delete posts.
  * @summary Delete Post
  */
 export const deletePostPostsPostIdDelete = (
-    postId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<null>> => {
-    return axios.default.delete(
-      `http://100.109.46.43:8007/posts/${postId}`,options
-    );
+    postId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<null>(
+    {url: `/posts/${postId}`, method: 'DELETE'
+    },
+    options);
   }
 
 
 
-export const getDeletePostPostsPostIdDeleteMutationFetcher = (postId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<null>> => {
+export const getDeletePostPostsPostIdDeleteMutationFetcher = (postId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<null> => {
     return deletePostPostsPostIdDelete(postId, options);
   }
 }
-export const getDeletePostPostsPostIdDeleteMutationKey = (postId: string,) => [`http://100.109.46.43:8007/posts/${postId}`] as const;
+export const getDeletePostPostsPostIdDeleteMutationKey = (postId: string,) => [`/posts/${postId}`] as const;
 
 export type DeletePostPostsPostIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deletePostPostsPostIdDelete>>>
-export type DeletePostPostsPostIdDeleteMutationError = AxiosError<HTTPValidationError>
+export type DeletePostPostsPostIdDeleteMutationError = HTTPValidationError
 
 /**
  * @summary Delete Post
  */
-export const useDeletePostPostsPostIdDelete = <TError = AxiosError<HTTPValidationError>>(
-  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deletePostPostsPostIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deletePostPostsPostIdDelete>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useDeletePostPostsPostIdDelete = <TError = HTTPValidationError>(
+  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deletePostPostsPostIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deletePostPostsPostIdDelete>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getDeletePostPostsPostIdDeleteMutationKey(postId);
-  const swrFn = getDeletePostPostsPostIdDeleteMutationFetcher(postId, axiosOptions);
+  const swrFn = getDeletePostPostsPostIdDeleteMutationFetcher(postId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1125,36 +1245,37 @@ Creates a like entry if not already liked by the user.
  * @summary Like Post
  */
 export const likePostPostsPostIdLikePost = (
-    postId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/posts/${postId}/like`,undefined,options
-    );
+    postId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/posts/${postId}/like`, method: 'POST'
+    },
+    options);
   }
 
 
 
-export const getLikePostPostsPostIdLikePostMutationFetcher = (postId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<unknown>> => {
+export const getLikePostPostsPostIdLikePostMutationFetcher = (postId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
     return likePostPostsPostIdLikePost(postId, options);
   }
 }
-export const getLikePostPostsPostIdLikePostMutationKey = (postId: string,) => [`http://100.109.46.43:8007/posts/${postId}/like`] as const;
+export const getLikePostPostsPostIdLikePostMutationKey = (postId: string,) => [`/posts/${postId}/like`] as const;
 
 export type LikePostPostsPostIdLikePostMutationResult = NonNullable<Awaited<ReturnType<typeof likePostPostsPostIdLikePost>>>
-export type LikePostPostsPostIdLikePostMutationError = AxiosError<HTTPValidationError>
+export type LikePostPostsPostIdLikePostMutationError = HTTPValidationError
 
 /**
  * @summary Like Post
  */
-export const useLikePostPostsPostIdLikePost = <TError = AxiosError<HTTPValidationError>>(
-  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof likePostPostsPostIdLikePost>>, TError, Key, Arguments, Awaited<ReturnType<typeof likePostPostsPostIdLikePost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useLikePostPostsPostIdLikePost = <TError = HTTPValidationError>(
+  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof likePostPostsPostIdLikePost>>, TError, Key, Arguments, Awaited<ReturnType<typeof likePostPostsPostIdLikePost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getLikePostPostsPostIdLikePostMutationKey(postId);
-  const swrFn = getLikePostPostsPostIdLikePostMutationFetcher(postId, axiosOptions);
+  const swrFn = getLikePostPostsPostIdLikePostMutationFetcher(postId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1171,36 +1292,37 @@ Removes the like entry if it exists.
  * @summary Unlike Post
  */
 export const unlikePostPostsPostIdLikeDelete = (
-    postId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<null>> => {
-    return axios.default.delete(
-      `http://100.109.46.43:8007/posts/${postId}/like`,options
-    );
+    postId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<null>(
+    {url: `/posts/${postId}/like`, method: 'DELETE'
+    },
+    options);
   }
 
 
 
-export const getUnlikePostPostsPostIdLikeDeleteMutationFetcher = (postId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<null>> => {
+export const getUnlikePostPostsPostIdLikeDeleteMutationFetcher = (postId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<null> => {
     return unlikePostPostsPostIdLikeDelete(postId, options);
   }
 }
-export const getUnlikePostPostsPostIdLikeDeleteMutationKey = (postId: string,) => [`http://100.109.46.43:8007/posts/${postId}/like`] as const;
+export const getUnlikePostPostsPostIdLikeDeleteMutationKey = (postId: string,) => [`/posts/${postId}/like`] as const;
 
 export type UnlikePostPostsPostIdLikeDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof unlikePostPostsPostIdLikeDelete>>>
-export type UnlikePostPostsPostIdLikeDeleteMutationError = AxiosError<HTTPValidationError>
+export type UnlikePostPostsPostIdLikeDeleteMutationError = HTTPValidationError
 
 /**
  * @summary Unlike Post
  */
-export const useUnlikePostPostsPostIdLikeDelete = <TError = AxiosError<HTTPValidationError>>(
-  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof unlikePostPostsPostIdLikeDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof unlikePostPostsPostIdLikeDelete>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useUnlikePostPostsPostIdLikeDelete = <TError = HTTPValidationError>(
+  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof unlikePostPostsPostIdLikeDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof unlikePostPostsPostIdLikeDelete>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getUnlikePostPostsPostIdLikeDeleteMutationKey(postId);
-  const swrFn = getUnlikePostPostsPostIdLikeDeleteMutationFetcher(postId, axiosOptions);
+  const swrFn = getUnlikePostPostsPostIdLikeDeleteMutationFetcher(postId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1215,37 +1337,39 @@ export const useUnlikePostPostsPostIdLikeDelete = <TError = AxiosError<HTTPValid
  * @summary Create Category
  */
 export const createCategoryCategoriesPost = (
-    categoryCreate: CategoryCreate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<CategoryRead>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/categories/`,
-      categoryCreate,options
-    );
+    categoryCreate: CategoryCreate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<CategoryRead>(
+    {url: `/categories/`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: categoryCreate
+    },
+    options);
   }
 
 
 
-export const getCreateCategoryCategoriesPostMutationFetcher = ( options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: CategoryCreate }): Promise<AxiosResponse<CategoryRead>> => {
+export const getCreateCategoryCategoriesPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: CategoryCreate }): Promise<CategoryRead> => {
     return createCategoryCategoriesPost(arg, options);
   }
 }
-export const getCreateCategoryCategoriesPostMutationKey = () => [`http://100.109.46.43:8007/categories/`] as const;
+export const getCreateCategoryCategoriesPostMutationKey = () => [`/categories/`] as const;
 
 export type CreateCategoryCategoriesPostMutationResult = NonNullable<Awaited<ReturnType<typeof createCategoryCategoriesPost>>>
-export type CreateCategoryCategoriesPostMutationError = AxiosError<HTTPValidationError>
+export type CreateCategoryCategoriesPostMutationError = HTTPValidationError
 
 /**
  * @summary Create Category
  */
-export const useCreateCategoryCategoriesPost = <TError = AxiosError<HTTPValidationError>>(
-   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createCategoryCategoriesPost>>, TError, Key, CategoryCreate, Awaited<ReturnType<typeof createCategoryCategoriesPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useCreateCategoryCategoriesPost = <TError = HTTPValidationError>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createCategoryCategoriesPost>>, TError, Key, CategoryCreate, Awaited<ReturnType<typeof createCategoryCategoriesPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getCreateCategoryCategoriesPostMutationKey();
-  const swrFn = getCreateCategoryCategoriesPostMutationFetcher(axiosOptions);
+  const swrFn = getCreateCategoryCategoriesPostMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1260,33 +1384,33 @@ export const useCreateCategoryCategoriesPost = <TError = AxiosError<HTTPValidati
  * @summary List Categories
  */
 export const listCategoriesCategoriesGet = (
-    params?: ListCategoriesCategoriesGetParams, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<CategoryRead[]>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/categories/`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+    params?: ListCategoriesCategoriesGetParams,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<CategoryRead[]>(
+    {url: `/categories/`, method: 'GET',
+        params
+    },
+    options);
   }
 
 
 
-export const getListCategoriesCategoriesGetKey = (params?: ListCategoriesCategoriesGetParams,) => [`http://100.109.46.43:8007/categories/`, ...(params ? [params]: [])] as const;
+export const getListCategoriesCategoriesGetKey = (params?: ListCategoriesCategoriesGetParams,) => [`/categories/`, ...(params ? [params]: [])] as const;
 
 export type ListCategoriesCategoriesGetQueryResult = NonNullable<Awaited<ReturnType<typeof listCategoriesCategoriesGet>>>
-export type ListCategoriesCategoriesGetQueryError = AxiosError<HTTPValidationError>
+export type ListCategoriesCategoriesGetQueryError = HTTPValidationError
 
 /**
  * @summary List Categories
  */
-export const useListCategoriesCategoriesGet = <TError = AxiosError<HTTPValidationError>>(
-  params?: ListCategoriesCategoriesGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listCategoriesCategoriesGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useListCategoriesCategoriesGet = <TError = HTTPValidationError>(
+  params?: ListCategoriesCategoriesGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listCategoriesCategoriesGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getListCategoriesCategoriesGetKey(params) : null);
-  const swrFn = () => listCategoriesCategoriesGet(params, axiosOptions)
+  const swrFn = () => listCategoriesCategoriesGet(params, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -1301,31 +1425,32 @@ export const useListCategoriesCategoriesGet = <TError = AxiosError<HTTPValidatio
  * @summary Get Category
  */
 export const getCategoryCategoriesCategoryIdGet = (
-    categoryId: number, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<CategoryRead>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/categories/${categoryId}`,options
-    );
+    categoryId: number,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<CategoryRead>(
+    {url: `/categories/${categoryId}`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getGetCategoryCategoriesCategoryIdGetKey = (categoryId: number,) => [`http://100.109.46.43:8007/categories/${categoryId}`] as const;
+export const getGetCategoryCategoriesCategoryIdGetKey = (categoryId: number,) => [`/categories/${categoryId}`] as const;
 
 export type GetCategoryCategoriesCategoryIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getCategoryCategoriesCategoryIdGet>>>
-export type GetCategoryCategoriesCategoryIdGetQueryError = AxiosError<HTTPValidationError>
+export type GetCategoryCategoriesCategoryIdGetQueryError = HTTPValidationError
 
 /**
  * @summary Get Category
  */
-export const useGetCategoryCategoriesCategoryIdGet = <TError = AxiosError<HTTPValidationError>>(
-  categoryId: number, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getCategoryCategoriesCategoryIdGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useGetCategoryCategoriesCategoryIdGet = <TError = HTTPValidationError>(
+  categoryId: number, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getCategoryCategoriesCategoryIdGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false && !!(categoryId)
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetCategoryCategoriesCategoryIdGetKey(categoryId) : null);
-  const swrFn = () => getCategoryCategoriesCategoryIdGet(categoryId, axiosOptions)
+  const swrFn = () => getCategoryCategoriesCategoryIdGet(categoryId, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -1341,37 +1466,39 @@ export const useGetCategoryCategoriesCategoryIdGet = <TError = AxiosError<HTTPVa
  */
 export const updateCategoryCategoriesCategoryIdPut = (
     categoryId: number,
-    categoryUpdate: CategoryUpdate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<CategoryRead>> => {
-    return axios.default.put(
-      `http://100.109.46.43:8007/categories/${categoryId}`,
-      categoryUpdate,options
-    );
+    categoryUpdate: CategoryUpdate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<CategoryRead>(
+    {url: `/categories/${categoryId}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: categoryUpdate
+    },
+    options);
   }
 
 
 
-export const getUpdateCategoryCategoriesCategoryIdPutMutationFetcher = (categoryId: number, options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: CategoryUpdate }): Promise<AxiosResponse<CategoryRead>> => {
+export const getUpdateCategoryCategoriesCategoryIdPutMutationFetcher = (categoryId: number, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: CategoryUpdate }): Promise<CategoryRead> => {
     return updateCategoryCategoriesCategoryIdPut(categoryId, arg, options);
   }
 }
-export const getUpdateCategoryCategoriesCategoryIdPutMutationKey = (categoryId: number,) => [`http://100.109.46.43:8007/categories/${categoryId}`] as const;
+export const getUpdateCategoryCategoriesCategoryIdPutMutationKey = (categoryId: number,) => [`/categories/${categoryId}`] as const;
 
 export type UpdateCategoryCategoriesCategoryIdPutMutationResult = NonNullable<Awaited<ReturnType<typeof updateCategoryCategoriesCategoryIdPut>>>
-export type UpdateCategoryCategoriesCategoryIdPutMutationError = AxiosError<HTTPValidationError>
+export type UpdateCategoryCategoriesCategoryIdPutMutationError = HTTPValidationError
 
 /**
  * @summary Update Category
  */
-export const useUpdateCategoryCategoriesCategoryIdPut = <TError = AxiosError<HTTPValidationError>>(
-  categoryId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updateCategoryCategoriesCategoryIdPut>>, TError, Key, CategoryUpdate, Awaited<ReturnType<typeof updateCategoryCategoriesCategoryIdPut>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useUpdateCategoryCategoriesCategoryIdPut = <TError = HTTPValidationError>(
+  categoryId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updateCategoryCategoriesCategoryIdPut>>, TError, Key, CategoryUpdate, Awaited<ReturnType<typeof updateCategoryCategoriesCategoryIdPut>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getUpdateCategoryCategoriesCategoryIdPutMutationKey(categoryId);
-  const swrFn = getUpdateCategoryCategoriesCategoryIdPutMutationFetcher(categoryId, axiosOptions);
+  const swrFn = getUpdateCategoryCategoriesCategoryIdPutMutationFetcher(categoryId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1386,36 +1513,37 @@ export const useUpdateCategoryCategoriesCategoryIdPut = <TError = AxiosError<HTT
  * @summary Delete Category
  */
 export const deleteCategoryCategoriesCategoryIdDelete = (
-    categoryId: number, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.delete(
-      `http://100.109.46.43:8007/categories/${categoryId}`,options
-    );
+    categoryId: number,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/categories/${categoryId}`, method: 'DELETE'
+    },
+    options);
   }
 
 
 
-export const getDeleteCategoryCategoriesCategoryIdDeleteMutationFetcher = (categoryId: number, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<unknown>> => {
+export const getDeleteCategoryCategoriesCategoryIdDeleteMutationFetcher = (categoryId: number, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
     return deleteCategoryCategoriesCategoryIdDelete(categoryId, options);
   }
 }
-export const getDeleteCategoryCategoriesCategoryIdDeleteMutationKey = (categoryId: number,) => [`http://100.109.46.43:8007/categories/${categoryId}`] as const;
+export const getDeleteCategoryCategoriesCategoryIdDeleteMutationKey = (categoryId: number,) => [`/categories/${categoryId}`] as const;
 
 export type DeleteCategoryCategoriesCategoryIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCategoryCategoriesCategoryIdDelete>>>
-export type DeleteCategoryCategoriesCategoryIdDeleteMutationError = AxiosError<HTTPValidationError>
+export type DeleteCategoryCategoriesCategoryIdDeleteMutationError = HTTPValidationError
 
 /**
  * @summary Delete Category
  */
-export const useDeleteCategoryCategoriesCategoryIdDelete = <TError = AxiosError<HTTPValidationError>>(
-  categoryId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteCategoryCategoriesCategoryIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteCategoryCategoriesCategoryIdDelete>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useDeleteCategoryCategoriesCategoryIdDelete = <TError = HTTPValidationError>(
+  categoryId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteCategoryCategoriesCategoryIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteCategoryCategoriesCategoryIdDelete>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getDeleteCategoryCategoriesCategoryIdDeleteMutationKey(categoryId);
-  const swrFn = getDeleteCategoryCategoriesCategoryIdDeleteMutationFetcher(categoryId, axiosOptions);
+  const swrFn = getDeleteCategoryCategoriesCategoryIdDeleteMutationFetcher(categoryId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1430,37 +1558,39 @@ export const useDeleteCategoryCategoriesCategoryIdDelete = <TError = AxiosError<
  * @summary Create Tag
  */
 export const createTagTagsPost = (
-    tagCreate: TagCreate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<TagRead>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/tags/`,
-      tagCreate,options
-    );
+    tagCreate: TagCreate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<TagRead>(
+    {url: `/tags/`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: tagCreate
+    },
+    options);
   }
 
 
 
-export const getCreateTagTagsPostMutationFetcher = ( options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: TagCreate }): Promise<AxiosResponse<TagRead>> => {
+export const getCreateTagTagsPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: TagCreate }): Promise<TagRead> => {
     return createTagTagsPost(arg, options);
   }
 }
-export const getCreateTagTagsPostMutationKey = () => [`http://100.109.46.43:8007/tags/`] as const;
+export const getCreateTagTagsPostMutationKey = () => [`/tags/`] as const;
 
 export type CreateTagTagsPostMutationResult = NonNullable<Awaited<ReturnType<typeof createTagTagsPost>>>
-export type CreateTagTagsPostMutationError = AxiosError<HTTPValidationError>
+export type CreateTagTagsPostMutationError = HTTPValidationError
 
 /**
  * @summary Create Tag
  */
-export const useCreateTagTagsPost = <TError = AxiosError<HTTPValidationError>>(
-   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createTagTagsPost>>, TError, Key, TagCreate, Awaited<ReturnType<typeof createTagTagsPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useCreateTagTagsPost = <TError = HTTPValidationError>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createTagTagsPost>>, TError, Key, TagCreate, Awaited<ReturnType<typeof createTagTagsPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getCreateTagTagsPostMutationKey();
-  const swrFn = getCreateTagTagsPostMutationFetcher(axiosOptions);
+  const swrFn = getCreateTagTagsPostMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1475,33 +1605,33 @@ export const useCreateTagTagsPost = <TError = AxiosError<HTTPValidationError>>(
  * @summary List Tags
  */
 export const listTagsTagsGet = (
-    params?: ListTagsTagsGetParams, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<TagRead[]>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/tags/`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+    params?: ListTagsTagsGetParams,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<TagRead[]>(
+    {url: `/tags/`, method: 'GET',
+        params
+    },
+    options);
   }
 
 
 
-export const getListTagsTagsGetKey = (params?: ListTagsTagsGetParams,) => [`http://100.109.46.43:8007/tags/`, ...(params ? [params]: [])] as const;
+export const getListTagsTagsGetKey = (params?: ListTagsTagsGetParams,) => [`/tags/`, ...(params ? [params]: [])] as const;
 
 export type ListTagsTagsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listTagsTagsGet>>>
-export type ListTagsTagsGetQueryError = AxiosError<HTTPValidationError>
+export type ListTagsTagsGetQueryError = HTTPValidationError
 
 /**
  * @summary List Tags
  */
-export const useListTagsTagsGet = <TError = AxiosError<HTTPValidationError>>(
-  params?: ListTagsTagsGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listTagsTagsGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useListTagsTagsGet = <TError = HTTPValidationError>(
+  params?: ListTagsTagsGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listTagsTagsGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getListTagsTagsGetKey(params) : null);
-  const swrFn = () => listTagsTagsGet(params, axiosOptions)
+  const swrFn = () => listTagsTagsGet(params, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -1516,36 +1646,37 @@ export const useListTagsTagsGet = <TError = AxiosError<HTTPValidationError>>(
  * @summary Delete Tag
  */
 export const deleteTagTagsTagIdDelete = (
-    tagId: number, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.delete(
-      `http://100.109.46.43:8007/tags/${tagId}`,options
-    );
+    tagId: number,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/tags/${tagId}`, method: 'DELETE'
+    },
+    options);
   }
 
 
 
-export const getDeleteTagTagsTagIdDeleteMutationFetcher = (tagId: number, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<unknown>> => {
+export const getDeleteTagTagsTagIdDeleteMutationFetcher = (tagId: number, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
     return deleteTagTagsTagIdDelete(tagId, options);
   }
 }
-export const getDeleteTagTagsTagIdDeleteMutationKey = (tagId: number,) => [`http://100.109.46.43:8007/tags/${tagId}`] as const;
+export const getDeleteTagTagsTagIdDeleteMutationKey = (tagId: number,) => [`/tags/${tagId}`] as const;
 
 export type DeleteTagTagsTagIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteTagTagsTagIdDelete>>>
-export type DeleteTagTagsTagIdDeleteMutationError = AxiosError<HTTPValidationError>
+export type DeleteTagTagsTagIdDeleteMutationError = HTTPValidationError
 
 /**
  * @summary Delete Tag
  */
-export const useDeleteTagTagsTagIdDelete = <TError = AxiosError<HTTPValidationError>>(
-  tagId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteTagTagsTagIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteTagTagsTagIdDelete>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useDeleteTagTagsTagIdDelete = <TError = HTTPValidationError>(
+  tagId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteTagTagsTagIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteTagTagsTagIdDelete>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getDeleteTagTagsTagIdDeleteMutationKey(tagId);
-  const swrFn = getDeleteTagTagsTagIdDeleteMutationFetcher(tagId, axiosOptions);
+  const swrFn = getDeleteTagTagsTagIdDeleteMutationFetcher(tagId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1561,37 +1692,39 @@ export const useDeleteTagTagsTagIdDelete = <TError = AxiosError<HTTPValidationEr
  */
 export const createCommentPostsPostIdCommentsPost = (
     postId: string,
-    commentCreate: CommentCreate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<CommentRead>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/posts/${postId}/comments`,
-      commentCreate,options
-    );
+    commentCreate: CommentCreate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<CommentRead>(
+    {url: `/posts/${postId}/comments`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: commentCreate
+    },
+    options);
   }
 
 
 
-export const getCreateCommentPostsPostIdCommentsPostMutationFetcher = (postId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: CommentCreate }): Promise<AxiosResponse<CommentRead>> => {
+export const getCreateCommentPostsPostIdCommentsPostMutationFetcher = (postId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: CommentCreate }): Promise<CommentRead> => {
     return createCommentPostsPostIdCommentsPost(postId, arg, options);
   }
 }
-export const getCreateCommentPostsPostIdCommentsPostMutationKey = (postId: string,) => [`http://100.109.46.43:8007/posts/${postId}/comments`] as const;
+export const getCreateCommentPostsPostIdCommentsPostMutationKey = (postId: string,) => [`/posts/${postId}/comments`] as const;
 
 export type CreateCommentPostsPostIdCommentsPostMutationResult = NonNullable<Awaited<ReturnType<typeof createCommentPostsPostIdCommentsPost>>>
-export type CreateCommentPostsPostIdCommentsPostMutationError = AxiosError<HTTPValidationError>
+export type CreateCommentPostsPostIdCommentsPostMutationError = HTTPValidationError
 
 /**
  * @summary Create Comment
  */
-export const useCreateCommentPostsPostIdCommentsPost = <TError = AxiosError<HTTPValidationError>>(
-  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createCommentPostsPostIdCommentsPost>>, TError, Key, CommentCreate, Awaited<ReturnType<typeof createCommentPostsPostIdCommentsPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useCreateCommentPostsPostIdCommentsPost = <TError = HTTPValidationError>(
+  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createCommentPostsPostIdCommentsPost>>, TError, Key, CommentCreate, Awaited<ReturnType<typeof createCommentPostsPostIdCommentsPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getCreateCommentPostsPostIdCommentsPostMutationKey(postId);
-  const swrFn = getCreateCommentPostsPostIdCommentsPostMutationFetcher(postId, axiosOptions);
+  const swrFn = getCreateCommentPostsPostIdCommentsPostMutationFetcher(postId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1607,35 +1740,35 @@ export const useCreateCommentPostsPostIdCommentsPost = <TError = AxiosError<HTTP
  */
 export const listPostCommentsPostsPostIdCommentsGet = (
     postId: string,
-    params?: ListPostCommentsPostsPostIdCommentsGetParams, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<CommentRead[]>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/posts/${postId}/comments`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+    params?: ListPostCommentsPostsPostIdCommentsGetParams,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<CommentRead[]>(
+    {url: `/posts/${postId}/comments`, method: 'GET',
+        params
+    },
+    options);
   }
 
 
 
 export const getListPostCommentsPostsPostIdCommentsGetKey = (postId: string,
-    params?: ListPostCommentsPostsPostIdCommentsGetParams,) => [`http://100.109.46.43:8007/posts/${postId}/comments`, ...(params ? [params]: [])] as const;
+    params?: ListPostCommentsPostsPostIdCommentsGetParams,) => [`/posts/${postId}/comments`, ...(params ? [params]: [])] as const;
 
 export type ListPostCommentsPostsPostIdCommentsGetQueryResult = NonNullable<Awaited<ReturnType<typeof listPostCommentsPostsPostIdCommentsGet>>>
-export type ListPostCommentsPostsPostIdCommentsGetQueryError = AxiosError<HTTPValidationError>
+export type ListPostCommentsPostsPostIdCommentsGetQueryError = HTTPValidationError
 
 /**
  * @summary List Post Comments
  */
-export const useListPostCommentsPostsPostIdCommentsGet = <TError = AxiosError<HTTPValidationError>>(
+export const useListPostCommentsPostsPostIdCommentsGet = <TError = HTTPValidationError>(
   postId: string,
-    params?: ListPostCommentsPostsPostIdCommentsGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listPostCommentsPostsPostIdCommentsGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+    params?: ListPostCommentsPostsPostIdCommentsGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listPostCommentsPostsPostIdCommentsGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false && !!(postId)
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getListPostCommentsPostsPostIdCommentsGetKey(postId,params) : null);
-  const swrFn = () => listPostCommentsPostsPostIdCommentsGet(postId,params, axiosOptions)
+  const swrFn = () => listPostCommentsPostsPostIdCommentsGet(postId,params, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -1651,37 +1784,39 @@ export const useListPostCommentsPostsPostIdCommentsGet = <TError = AxiosError<HT
  */
 export const updateCommentCommentsCommentIdPut = (
     commentId: string,
-    commentUpdate: CommentUpdate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<CommentRead>> => {
-    return axios.default.put(
-      `http://100.109.46.43:8007/comments/${commentId}`,
-      commentUpdate,options
-    );
+    commentUpdate: CommentUpdate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<CommentRead>(
+    {url: `/comments/${commentId}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: commentUpdate
+    },
+    options);
   }
 
 
 
-export const getUpdateCommentCommentsCommentIdPutMutationFetcher = (commentId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: CommentUpdate }): Promise<AxiosResponse<CommentRead>> => {
+export const getUpdateCommentCommentsCommentIdPutMutationFetcher = (commentId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: CommentUpdate }): Promise<CommentRead> => {
     return updateCommentCommentsCommentIdPut(commentId, arg, options);
   }
 }
-export const getUpdateCommentCommentsCommentIdPutMutationKey = (commentId: string,) => [`http://100.109.46.43:8007/comments/${commentId}`] as const;
+export const getUpdateCommentCommentsCommentIdPutMutationKey = (commentId: string,) => [`/comments/${commentId}`] as const;
 
 export type UpdateCommentCommentsCommentIdPutMutationResult = NonNullable<Awaited<ReturnType<typeof updateCommentCommentsCommentIdPut>>>
-export type UpdateCommentCommentsCommentIdPutMutationError = AxiosError<HTTPValidationError>
+export type UpdateCommentCommentsCommentIdPutMutationError = HTTPValidationError
 
 /**
  * @summary Update Comment
  */
-export const useUpdateCommentCommentsCommentIdPut = <TError = AxiosError<HTTPValidationError>>(
-  commentId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updateCommentCommentsCommentIdPut>>, TError, Key, CommentUpdate, Awaited<ReturnType<typeof updateCommentCommentsCommentIdPut>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useUpdateCommentCommentsCommentIdPut = <TError = HTTPValidationError>(
+  commentId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updateCommentCommentsCommentIdPut>>, TError, Key, CommentUpdate, Awaited<ReturnType<typeof updateCommentCommentsCommentIdPut>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getUpdateCommentCommentsCommentIdPutMutationKey(commentId);
-  const swrFn = getUpdateCommentCommentsCommentIdPutMutationFetcher(commentId, axiosOptions);
+  const swrFn = getUpdateCommentCommentsCommentIdPutMutationFetcher(commentId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1696,36 +1831,37 @@ export const useUpdateCommentCommentsCommentIdPut = <TError = AxiosError<HTTPVal
  * @summary Delete Comment
  */
 export const deleteCommentCommentsCommentIdDelete = (
-    commentId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.delete(
-      `http://100.109.46.43:8007/comments/${commentId}`,options
-    );
+    commentId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/comments/${commentId}`, method: 'DELETE'
+    },
+    options);
   }
 
 
 
-export const getDeleteCommentCommentsCommentIdDeleteMutationFetcher = (commentId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<unknown>> => {
+export const getDeleteCommentCommentsCommentIdDeleteMutationFetcher = (commentId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
     return deleteCommentCommentsCommentIdDelete(commentId, options);
   }
 }
-export const getDeleteCommentCommentsCommentIdDeleteMutationKey = (commentId: string,) => [`http://100.109.46.43:8007/comments/${commentId}`] as const;
+export const getDeleteCommentCommentsCommentIdDeleteMutationKey = (commentId: string,) => [`/comments/${commentId}`] as const;
 
 export type DeleteCommentCommentsCommentIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteCommentCommentsCommentIdDelete>>>
-export type DeleteCommentCommentsCommentIdDeleteMutationError = AxiosError<HTTPValidationError>
+export type DeleteCommentCommentsCommentIdDeleteMutationError = HTTPValidationError
 
 /**
  * @summary Delete Comment
  */
-export const useDeleteCommentCommentsCommentIdDelete = <TError = AxiosError<HTTPValidationError>>(
-  commentId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteCommentCommentsCommentIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteCommentCommentsCommentIdDelete>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useDeleteCommentCommentsCommentIdDelete = <TError = HTTPValidationError>(
+  commentId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteCommentCommentsCommentIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteCommentCommentsCommentIdDelete>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getDeleteCommentCommentsCommentIdDeleteMutationKey(commentId);
-  const swrFn = getDeleteCommentCommentsCommentIdDeleteMutationFetcher(commentId, axiosOptions);
+  const swrFn = getDeleteCommentCommentsCommentIdDeleteMutationFetcher(commentId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1741,37 +1877,39 @@ export const useDeleteCommentCommentsCommentIdDelete = <TError = AxiosError<HTTP
  */
 export const createLikePostsPostIdLikesPost = (
     postId: string,
-    likeCreate: LikeCreate, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<LikeRead>> => {
-    return axios.default.post(
-      `http://100.109.46.43:8007/posts/${postId}/likes`,
-      likeCreate,options
-    );
+    likeCreate: LikeCreate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<LikeRead>(
+    {url: `/posts/${postId}/likes`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: likeCreate
+    },
+    options);
   }
 
 
 
-export const getCreateLikePostsPostIdLikesPostMutationFetcher = (postId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: LikeCreate }): Promise<AxiosResponse<LikeRead>> => {
+export const getCreateLikePostsPostIdLikesPostMutationFetcher = (postId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: LikeCreate }): Promise<LikeRead> => {
     return createLikePostsPostIdLikesPost(postId, arg, options);
   }
 }
-export const getCreateLikePostsPostIdLikesPostMutationKey = (postId: string,) => [`http://100.109.46.43:8007/posts/${postId}/likes`] as const;
+export const getCreateLikePostsPostIdLikesPostMutationKey = (postId: string,) => [`/posts/${postId}/likes`] as const;
 
 export type CreateLikePostsPostIdLikesPostMutationResult = NonNullable<Awaited<ReturnType<typeof createLikePostsPostIdLikesPost>>>
-export type CreateLikePostsPostIdLikesPostMutationError = AxiosError<HTTPValidationError>
+export type CreateLikePostsPostIdLikesPostMutationError = HTTPValidationError
 
 /**
  * @summary Create Like
  */
-export const useCreateLikePostsPostIdLikesPost = <TError = AxiosError<HTTPValidationError>>(
-  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createLikePostsPostIdLikesPost>>, TError, Key, LikeCreate, Awaited<ReturnType<typeof createLikePostsPostIdLikesPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useCreateLikePostsPostIdLikesPost = <TError = HTTPValidationError>(
+  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createLikePostsPostIdLikesPost>>, TError, Key, LikeCreate, Awaited<ReturnType<typeof createLikePostsPostIdLikesPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getCreateLikePostsPostIdLikesPostMutationKey(postId);
-  const swrFn = getCreateLikePostsPostIdLikesPostMutationFetcher(postId, axiosOptions);
+  const swrFn = getCreateLikePostsPostIdLikesPostMutationFetcher(postId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1786,36 +1924,37 @@ export const useCreateLikePostsPostIdLikesPost = <TError = AxiosError<HTTPValida
  * @summary Delete Like
  */
 export const deleteLikePostsPostIdLikesDelete = (
-    postId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.delete(
-      `http://100.109.46.43:8007/posts/${postId}/likes`,options
-    );
+    postId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/posts/${postId}/likes`, method: 'DELETE'
+    },
+    options);
   }
 
 
 
-export const getDeleteLikePostsPostIdLikesDeleteMutationFetcher = (postId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<unknown>> => {
+export const getDeleteLikePostsPostIdLikesDeleteMutationFetcher = (postId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
     return deleteLikePostsPostIdLikesDelete(postId, options);
   }
 }
-export const getDeleteLikePostsPostIdLikesDeleteMutationKey = (postId: string,) => [`http://100.109.46.43:8007/posts/${postId}/likes`] as const;
+export const getDeleteLikePostsPostIdLikesDeleteMutationKey = (postId: string,) => [`/posts/${postId}/likes`] as const;
 
 export type DeleteLikePostsPostIdLikesDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteLikePostsPostIdLikesDelete>>>
-export type DeleteLikePostsPostIdLikesDeleteMutationError = AxiosError<HTTPValidationError>
+export type DeleteLikePostsPostIdLikesDeleteMutationError = HTTPValidationError
 
 /**
  * @summary Delete Like
  */
-export const useDeleteLikePostsPostIdLikesDelete = <TError = AxiosError<HTTPValidationError>>(
-  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteLikePostsPostIdLikesDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteLikePostsPostIdLikesDelete>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useDeleteLikePostsPostIdLikesDelete = <TError = HTTPValidationError>(
+  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteLikePostsPostIdLikesDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteLikePostsPostIdLikesDelete>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getDeleteLikePostsPostIdLikesDeleteMutationKey(postId);
-  const swrFn = getDeleteLikePostsPostIdLikesDeleteMutationFetcher(postId, axiosOptions);
+  const swrFn = getDeleteLikePostsPostIdLikesDeleteMutationFetcher(postId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1831,35 +1970,35 @@ export const useDeleteLikePostsPostIdLikesDelete = <TError = AxiosError<HTTPVali
  */
 export const listPostLikesPostsPostIdLikesGet = (
     postId: string,
-    params?: ListPostLikesPostsPostIdLikesGetParams, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<LikeRead[]>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/posts/${postId}/likes`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+    params?: ListPostLikesPostsPostIdLikesGetParams,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<LikeRead[]>(
+    {url: `/posts/${postId}/likes`, method: 'GET',
+        params
+    },
+    options);
   }
 
 
 
 export const getListPostLikesPostsPostIdLikesGetKey = (postId: string,
-    params?: ListPostLikesPostsPostIdLikesGetParams,) => [`http://100.109.46.43:8007/posts/${postId}/likes`, ...(params ? [params]: [])] as const;
+    params?: ListPostLikesPostsPostIdLikesGetParams,) => [`/posts/${postId}/likes`, ...(params ? [params]: [])] as const;
 
 export type ListPostLikesPostsPostIdLikesGetQueryResult = NonNullable<Awaited<ReturnType<typeof listPostLikesPostsPostIdLikesGet>>>
-export type ListPostLikesPostsPostIdLikesGetQueryError = AxiosError<HTTPValidationError>
+export type ListPostLikesPostsPostIdLikesGetQueryError = HTTPValidationError
 
 /**
  * @summary List Post Likes
  */
-export const useListPostLikesPostsPostIdLikesGet = <TError = AxiosError<HTTPValidationError>>(
+export const useListPostLikesPostsPostIdLikesGet = <TError = HTTPValidationError>(
   postId: string,
-    params?: ListPostLikesPostsPostIdLikesGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listPostLikesPostsPostIdLikesGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+    params?: ListPostLikesPostsPostIdLikesGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listPostLikesPostsPostIdLikesGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false && !!(postId)
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getListPostLikesPostsPostIdLikesGetKey(postId,params) : null);
-  const swrFn = () => listPostLikesPostsPostIdLikesGet(postId,params, axiosOptions)
+  const swrFn = () => listPostLikesPostsPostIdLikesGet(postId,params, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -1876,31 +2015,32 @@ Returns all themes with their configuration and status.
  * @summary List Themes
  */
 export const listThemesThemesGet = (
-     options?: AxiosRequestConfig
- ): Promise<AxiosResponse<ThemeRead[]>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/themes`,options
-    );
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<ThemeRead[]>(
+    {url: `/themes`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getListThemesThemesGetKey = () => [`http://100.109.46.43:8007/themes`] as const;
+export const getListThemesThemesGetKey = () => [`/themes`] as const;
 
 export type ListThemesThemesGetQueryResult = NonNullable<Awaited<ReturnType<typeof listThemesThemesGet>>>
-export type ListThemesThemesGetQueryError = AxiosError<unknown>
+export type ListThemesThemesGetQueryError = unknown
 
 /**
  * @summary List Themes
  */
-export const useListThemesThemesGet = <TError = AxiosError<unknown>>(
-   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listThemesThemesGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useListThemesThemesGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listThemesThemesGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getListThemesThemesGetKey() : null);
-  const swrFn = () => listThemesThemesGet(axiosOptions)
+  const swrFn = () => listThemesThemesGet(requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -1918,36 +2058,37 @@ Requires authentication and appropriate permissions.
  * @summary Activate Theme
  */
 export const activateThemeThemesThemeIdActivatePut = (
-    themeId: number, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<ThemeRead>> => {
-    return axios.default.put(
-      `http://100.109.46.43:8007/themes/${themeId}/activate`,undefined,options
-    );
+    themeId: number,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<ThemeRead>(
+    {url: `/themes/${themeId}/activate`, method: 'PUT'
+    },
+    options);
   }
 
 
 
-export const getActivateThemeThemesThemeIdActivatePutMutationFetcher = (themeId: number, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<ThemeRead>> => {
+export const getActivateThemeThemesThemeIdActivatePutMutationFetcher = (themeId: number, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<ThemeRead> => {
     return activateThemeThemesThemeIdActivatePut(themeId, options);
   }
 }
-export const getActivateThemeThemesThemeIdActivatePutMutationKey = (themeId: number,) => [`http://100.109.46.43:8007/themes/${themeId}/activate`] as const;
+export const getActivateThemeThemesThemeIdActivatePutMutationKey = (themeId: number,) => [`/themes/${themeId}/activate`] as const;
 
 export type ActivateThemeThemesThemeIdActivatePutMutationResult = NonNullable<Awaited<ReturnType<typeof activateThemeThemesThemeIdActivatePut>>>
-export type ActivateThemeThemesThemeIdActivatePutMutationError = AxiosError<HTTPValidationError>
+export type ActivateThemeThemesThemeIdActivatePutMutationError = HTTPValidationError
 
 /**
  * @summary Activate Theme
  */
-export const useActivateThemeThemesThemeIdActivatePut = <TError = AxiosError<HTTPValidationError>>(
-  themeId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof activateThemeThemesThemeIdActivatePut>>, TError, Key, Arguments, Awaited<ReturnType<typeof activateThemeThemesThemeIdActivatePut>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useActivateThemeThemesThemeIdActivatePut = <TError = HTTPValidationError>(
+  themeId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof activateThemeThemesThemeIdActivatePut>>, TError, Key, Arguments, Awaited<ReturnType<typeof activateThemeThemesThemeIdActivatePut>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getActivateThemeThemesThemeIdActivatePutMutationKey(themeId);
-  const swrFn = getActivateThemeThemesThemeIdActivatePutMutationFetcher(themeId, axiosOptions);
+  const swrFn = getActivateThemeThemesThemeIdActivatePutMutationFetcher(themeId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -1964,31 +2105,32 @@ Returns the active theme configuration.
  * @summary Get Active Theme
  */
 export const getActiveThemeThemesActiveGet = (
-     options?: AxiosRequestConfig
- ): Promise<AxiosResponse<ThemeRead>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/themes/active`,options
-    );
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<ThemeRead>(
+    {url: `/themes/active`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getGetActiveThemeThemesActiveGetKey = () => [`http://100.109.46.43:8007/themes/active`] as const;
+export const getGetActiveThemeThemesActiveGetKey = () => [`/themes/active`] as const;
 
 export type GetActiveThemeThemesActiveGetQueryResult = NonNullable<Awaited<ReturnType<typeof getActiveThemeThemesActiveGet>>>
-export type GetActiveThemeThemesActiveGetQueryError = AxiosError<unknown>
+export type GetActiveThemeThemesActiveGetQueryError = unknown
 
 /**
  * @summary Get Active Theme
  */
-export const useGetActiveThemeThemesActiveGet = <TError = AxiosError<unknown>>(
-   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getActiveThemeThemesActiveGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useGetActiveThemeThemesActiveGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getActiveThemeThemesActiveGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetActiveThemeThemesActiveGetKey() : null);
-  const swrFn = () => getActiveThemeThemesActiveGet(axiosOptions)
+  const swrFn = () => getActiveThemeThemesActiveGet(requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -2006,42 +2148,44 @@ Supports associating files with a specific post.
  * @summary Upload Files
  */
 export const uploadFilesUploadPost = (
-    bodyUploadFilesUploadPost: BodyUploadFilesUploadPost, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<PostFileRead[]>> => {const formData = new FormData();
+    bodyUploadFilesUploadPost: BodyUploadFilesUploadPost,
+ options?: SecondParameter<typeof customInstance>) => {const formData = new FormData();
 bodyUploadFilesUploadPost.files.forEach(value => formData.append(`files`, value));
 if(bodyUploadFilesUploadPost.post_id !== undefined && bodyUploadFilesUploadPost.post_id !== null) {
  formData.append(`post_id`, bodyUploadFilesUploadPost.post_id)
  }
 
-    return axios.default.post(
-      `http://100.109.46.43:8007/upload`,
-      formData,options
-    );
+    return customInstance<PostFile[]>(
+    {url: `/upload`, method: 'POST',
+      headers: {'Content-Type': 'multipart/form-data', },
+       data: formData
+    },
+    options);
   }
 
 
 
-export const getUploadFilesUploadPostMutationFetcher = ( options?: AxiosRequestConfig) => {
-  return (_: Key, { arg }: { arg: BodyUploadFilesUploadPost }): Promise<AxiosResponse<PostFileRead[]>> => {
+export const getUploadFilesUploadPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: BodyUploadFilesUploadPost }): Promise<PostFile[]> => {
     return uploadFilesUploadPost(arg, options);
   }
 }
-export const getUploadFilesUploadPostMutationKey = () => [`http://100.109.46.43:8007/upload`] as const;
+export const getUploadFilesUploadPostMutationKey = () => [`/upload`] as const;
 
 export type UploadFilesUploadPostMutationResult = NonNullable<Awaited<ReturnType<typeof uploadFilesUploadPost>>>
-export type UploadFilesUploadPostMutationError = AxiosError<HTTPValidationError>
+export type UploadFilesUploadPostMutationError = HTTPValidationError
 
 /**
  * @summary Upload Files
  */
-export const useUploadFilesUploadPost = <TError = AxiosError<HTTPValidationError>>(
-   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof uploadFilesUploadPost>>, TError, Key, BodyUploadFilesUploadPost, Awaited<ReturnType<typeof uploadFilesUploadPost>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useUploadFilesUploadPost = <TError = HTTPValidationError>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof uploadFilesUploadPost>>, TError, Key, BodyUploadFilesUploadPost, Awaited<ReturnType<typeof uploadFilesUploadPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getUploadFilesUploadPostMutationKey();
-  const swrFn = getUploadFilesUploadPostMutationFetcher(axiosOptions);
+  const swrFn = getUploadFilesUploadPostMutationFetcher(requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -2058,33 +2202,33 @@ Can be filtered by post ID. Supports pagination.
  * @summary List Files
  */
 export const listFilesUploadGet = (
-    params?: ListFilesUploadGetParams, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<PostFileRead[]>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/upload`,{
-    ...options,
-        params: {...params, ...options?.params},}
-    );
+    params?: ListFilesUploadGetParams,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<PostFileRead[]>(
+    {url: `/upload`, method: 'GET',
+        params
+    },
+    options);
   }
 
 
 
-export const getListFilesUploadGetKey = (params?: ListFilesUploadGetParams,) => [`http://100.109.46.43:8007/upload`, ...(params ? [params]: [])] as const;
+export const getListFilesUploadGetKey = (params?: ListFilesUploadGetParams,) => [`/upload`, ...(params ? [params]: [])] as const;
 
 export type ListFilesUploadGetQueryResult = NonNullable<Awaited<ReturnType<typeof listFilesUploadGet>>>
-export type ListFilesUploadGetQueryError = AxiosError<HTTPValidationError>
+export type ListFilesUploadGetQueryError = HTTPValidationError
 
 /**
  * @summary List Files
  */
-export const useListFilesUploadGet = <TError = AxiosError<HTTPValidationError>>(
-  params?: ListFilesUploadGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listFilesUploadGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useListFilesUploadGet = <TError = HTTPValidationError>(
+  params?: ListFilesUploadGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof listFilesUploadGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getListFilesUploadGetKey(params) : null);
-  const swrFn = () => listFilesUploadGet(params, axiosOptions)
+  const swrFn = () => listFilesUploadGet(params, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -2102,36 +2246,37 @@ Only the file owner or users with appropriate permissions can delete files.
  * @summary Delete File
  */
 export const deleteFileUploadFileIdDelete = (
-    fileId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<null>> => {
-    return axios.default.delete(
-      `http://100.109.46.43:8007/upload/${fileId}`,options
-    );
+    fileId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<null>(
+    {url: `/upload/${fileId}`, method: 'DELETE'
+    },
+    options);
   }
 
 
 
-export const getDeleteFileUploadFileIdDeleteMutationFetcher = (fileId: string, options?: AxiosRequestConfig) => {
-  return (_: Key, __: { arg: Arguments }): Promise<AxiosResponse<null>> => {
+export const getDeleteFileUploadFileIdDeleteMutationFetcher = (fileId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<null> => {
     return deleteFileUploadFileIdDelete(fileId, options);
   }
 }
-export const getDeleteFileUploadFileIdDeleteMutationKey = (fileId: string,) => [`http://100.109.46.43:8007/upload/${fileId}`] as const;
+export const getDeleteFileUploadFileIdDeleteMutationKey = (fileId: string,) => [`/upload/${fileId}`] as const;
 
 export type DeleteFileUploadFileIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteFileUploadFileIdDelete>>>
-export type DeleteFileUploadFileIdDeleteMutationError = AxiosError<HTTPValidationError>
+export type DeleteFileUploadFileIdDeleteMutationError = HTTPValidationError
 
 /**
  * @summary Delete File
  */
-export const useDeleteFileUploadFileIdDelete = <TError = AxiosError<HTTPValidationError>>(
-  fileId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteFileUploadFileIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteFileUploadFileIdDelete>>> & { swrKey?: string }, axios?: AxiosRequestConfig}
+export const useDeleteFileUploadFileIdDelete = <TError = HTTPValidationError>(
+  fileId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteFileUploadFileIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteFileUploadFileIdDelete>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
 ) => {
 
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const swrKey = swrOptions?.swrKey ?? getDeleteFileUploadFileIdDeleteMutationKey(fileId);
-  const swrFn = getDeleteFileUploadFileIdDeleteMutationFetcher(fileId, axiosOptions);
+  const swrFn = getDeleteFileUploadFileIdDeleteMutationFetcher(fileId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -2148,31 +2293,32 @@ Returns file information without serving the actual file content.
  * @summary Get File Metadata
  */
 export const getFileMetadataUploadFileIdGet = (
-    fileId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<PostFileRead>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/upload/${fileId}`,options
-    );
+    fileId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<PostFileRead>(
+    {url: `/upload/${fileId}`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getGetFileMetadataUploadFileIdGetKey = (fileId: string,) => [`http://100.109.46.43:8007/upload/${fileId}`] as const;
+export const getGetFileMetadataUploadFileIdGetKey = (fileId: string,) => [`/upload/${fileId}`] as const;
 
 export type GetFileMetadataUploadFileIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getFileMetadataUploadFileIdGet>>>
-export type GetFileMetadataUploadFileIdGetQueryError = AxiosError<HTTPValidationError>
+export type GetFileMetadataUploadFileIdGetQueryError = HTTPValidationError
 
 /**
  * @summary Get File Metadata
  */
-export const useGetFileMetadataUploadFileIdGet = <TError = AxiosError<HTTPValidationError>>(
-  fileId: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getFileMetadataUploadFileIdGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useGetFileMetadataUploadFileIdGet = <TError = HTTPValidationError>(
+  fileId: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getFileMetadataUploadFileIdGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false && !!(fileId)
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetFileMetadataUploadFileIdGetKey(fileId) : null);
-  const swrFn = () => getFileMetadataUploadFileIdGet(fileId, axiosOptions)
+  const swrFn = () => getFileMetadataUploadFileIdGet(fileId, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -2189,31 +2335,253 @@ Serves the file content with appropriate headers.
  * @summary Download File
  */
 export const downloadFileUploadFileIdDownloadGet = (
-    fileId: string, options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/upload/${fileId}/download`,options
-    );
+    fileId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/upload/${fileId}/download`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getDownloadFileUploadFileIdDownloadGetKey = (fileId: string,) => [`http://100.109.46.43:8007/upload/${fileId}/download`] as const;
+export const getDownloadFileUploadFileIdDownloadGetKey = (fileId: string,) => [`/upload/${fileId}/download`] as const;
 
 export type DownloadFileUploadFileIdDownloadGetQueryResult = NonNullable<Awaited<ReturnType<typeof downloadFileUploadFileIdDownloadGet>>>
-export type DownloadFileUploadFileIdDownloadGetQueryError = AxiosError<HTTPValidationError>
+export type DownloadFileUploadFileIdDownloadGetQueryError = HTTPValidationError
 
 /**
  * @summary Download File
  */
-export const useDownloadFileUploadFileIdDownloadGet = <TError = AxiosError<HTTPValidationError>>(
-  fileId: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof downloadFileUploadFileIdDownloadGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useDownloadFileUploadFileIdDownloadGet = <TError = HTTPValidationError>(
+  fileId: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof downloadFileUploadFileIdDownloadGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false && !!(fileId)
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getDownloadFileUploadFileIdDownloadGetKey(fileId) : null);
-  const swrFn = () => downloadFileUploadFileIdDownloadGet(fileId, axiosOptions)
+  const swrFn = () => downloadFileUploadFileIdDownloadGet(fileId, requestOptions)
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Get general site information including:
+- User information (if authenticated) 
+- Blog title and description
+- List of active extensions
+- Current theme
+- Public settings
+- Enabled features
+
+This endpoint provides all the essential information needed
+to configure the frontend application.
+ * @summary Get Site Info
+ */
+export const getSiteInfoSiteInfoGet = (
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<SiteInfoResponse>(
+    {url: `/site/info`, method: 'GET'
+    },
+    options);
+  }
+
+
+
+export const getGetSiteInfoSiteInfoGetKey = () => [`/site/info`] as const;
+
+export type GetSiteInfoSiteInfoGetQueryResult = NonNullable<Awaited<ReturnType<typeof getSiteInfoSiteInfoGet>>>
+export type GetSiteInfoSiteInfoGetQueryError = unknown
+
+/**
+ * @summary Get Site Info
+ */
+export const useGetSiteInfoSiteInfoGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getSiteInfoSiteInfoGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
+) => {
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const isEnabled = swrOptions?.enabled !== false
+  const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetSiteInfoSiteInfoGetKey() : null);
+  const swrFn = () => getSiteInfoSiteInfoGet(requestOptions)
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Get all extensions or only active ones.
+
+This endpoint returns detailed information about extensions
+including their configuration and status.
+ * @summary Get Extensions
+ */
+export const getExtensionsSiteExtensionsGet = (
+    params?: GetExtensionsSiteExtensionsGetParams,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<ExtensionsResponse>(
+    {url: `/site/extensions`, method: 'GET',
+        params
+    },
+    options);
+  }
+
+
+
+export const getGetExtensionsSiteExtensionsGetKey = (params?: GetExtensionsSiteExtensionsGetParams,) => [`/site/extensions`, ...(params ? [params]: [])] as const;
+
+export type GetExtensionsSiteExtensionsGetQueryResult = NonNullable<Awaited<ReturnType<typeof getExtensionsSiteExtensionsGet>>>
+export type GetExtensionsSiteExtensionsGetQueryError = HTTPValidationError
+
+/**
+ * @summary Get Extensions
+ */
+export const useGetExtensionsSiteExtensionsGet = <TError = HTTPValidationError>(
+  params?: GetExtensionsSiteExtensionsGetParams, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getExtensionsSiteExtensionsGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
+) => {
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const isEnabled = swrOptions?.enabled !== false
+  const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetExtensionsSiteExtensionsGetKey(params) : null);
+  const swrFn = () => getExtensionsSiteExtensionsGet(params, requestOptions)
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Get list of active extension names.
+
+Returns a simple list of extension names that are currently active.
+Useful for quick feature detection in the frontend.
+ * @summary Get Active Extension Names
+ */
+export const getActiveExtensionNamesSiteExtensionsActiveGet = (
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<string[]>(
+    {url: `/site/extensions/active`, method: 'GET'
+    },
+    options);
+  }
+
+
+
+export const getGetActiveExtensionNamesSiteExtensionsActiveGetKey = () => [`/site/extensions/active`] as const;
+
+export type GetActiveExtensionNamesSiteExtensionsActiveGetQueryResult = NonNullable<Awaited<ReturnType<typeof getActiveExtensionNamesSiteExtensionsActiveGet>>>
+export type GetActiveExtensionNamesSiteExtensionsActiveGetQueryError = unknown
+
+/**
+ * @summary Get Active Extension Names
+ */
+export const useGetActiveExtensionNamesSiteExtensionsActiveGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getActiveExtensionNamesSiteExtensionsActiveGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
+) => {
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const isEnabled = swrOptions?.enabled !== false
+  const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetActiveExtensionNamesSiteExtensionsActiveGetKey() : null);
+  const swrFn = () => getActiveExtensionNamesSiteExtensionsActiveGet(requestOptions)
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Get list of enabled features.
+
+Returns a list of feature flags that indicate what functionality
+is available on this site (comments, registration, uploads, etc.).
+ * @summary Get Enabled Features
+ */
+export const getEnabledFeaturesSiteFeaturesGet = (
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<string[]>(
+    {url: `/site/features`, method: 'GET'
+    },
+    options);
+  }
+
+
+
+export const getGetEnabledFeaturesSiteFeaturesGetKey = () => [`/site/features`] as const;
+
+export type GetEnabledFeaturesSiteFeaturesGetQueryResult = NonNullable<Awaited<ReturnType<typeof getEnabledFeaturesSiteFeaturesGet>>>
+export type GetEnabledFeaturesSiteFeaturesGetQueryError = unknown
+
+/**
+ * @summary Get Enabled Features
+ */
+export const useGetEnabledFeaturesSiteFeaturesGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getEnabledFeaturesSiteFeaturesGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
+) => {
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const isEnabled = swrOptions?.enabled !== false
+  const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetEnabledFeaturesSiteFeaturesGetKey() : null);
+  const swrFn = () => getEnabledFeaturesSiteFeaturesGet(requestOptions)
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Get the currently active theme information.
+
+Returns the name and details of the active theme.
+ * @summary Get Active Theme
+ */
+export const getActiveThemeSiteThemeGet = (
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/site/theme`, method: 'GET'
+    },
+    options);
+  }
+
+
+
+export const getGetActiveThemeSiteThemeGetKey = () => [`/site/theme`] as const;
+
+export type GetActiveThemeSiteThemeGetQueryResult = NonNullable<Awaited<ReturnType<typeof getActiveThemeSiteThemeGet>>>
+export type GetActiveThemeSiteThemeGetQueryError = unknown
+
+/**
+ * @summary Get Active Theme
+ */
+export const useGetActiveThemeSiteThemeGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getActiveThemeSiteThemeGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
+) => {
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const isEnabled = swrOptions?.enabled !== false
+  const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetActiveThemeSiteThemeGetKey() : null);
+  const swrFn = () => getActiveThemeSiteThemeGet(requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -2227,31 +2595,32 @@ export const useDownloadFileUploadFileIdDownloadGet = <TError = AxiosError<HTTPV
  * @summary Health Check
  */
 export const healthCheckHealthGet = (
-     options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/health`,options
-    );
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/health`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getHealthCheckHealthGetKey = () => [`http://100.109.46.43:8007/health`] as const;
+export const getHealthCheckHealthGetKey = () => [`/health`] as const;
 
 export type HealthCheckHealthGetQueryResult = NonNullable<Awaited<ReturnType<typeof healthCheckHealthGet>>>
-export type HealthCheckHealthGetQueryError = AxiosError<unknown>
+export type HealthCheckHealthGetQueryError = unknown
 
 /**
  * @summary Health Check
  */
-export const useHealthCheckHealthGet = <TError = AxiosError<unknown>>(
-   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof healthCheckHealthGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useHealthCheckHealthGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof healthCheckHealthGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getHealthCheckHealthGetKey() : null);
-  const swrFn = () => healthCheckHealthGet(axiosOptions)
+  const swrFn = () => healthCheckHealthGet(requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -2265,31 +2634,32 @@ export const useHealthCheckHealthGet = <TError = AxiosError<unknown>>(
  * @summary Root
  */
 export const rootGet = (
-     options?: AxiosRequestConfig
- ): Promise<AxiosResponse<unknown>> => {
-    return axios.default.get(
-      `http://100.109.46.43:8007/`,options
-    );
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/`, method: 'GET'
+    },
+    options);
   }
 
 
 
-export const getRootGetKey = () => [`http://100.109.46.43:8007/`] as const;
+export const getRootGetKey = () => [`/`] as const;
 
 export type RootGetQueryResult = NonNullable<Awaited<ReturnType<typeof rootGet>>>
-export type RootGetQueryError = AxiosError<unknown>
+export type RootGetQueryError = unknown
 
 /**
  * @summary Root
  */
-export const useRootGet = <TError = AxiosError<unknown>>(
-   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof rootGet>>, TError> & { swrKey?: Key, enabled?: boolean }, axios?: AxiosRequestConfig }
+export const useRootGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof rootGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
-  const {swr: swrOptions, axios: axiosOptions} = options ?? {}
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
 
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getRootGetKey() : null);
-  const swrFn = () => rootGet(axiosOptions)
+  const swrFn = () => rootGet(requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 

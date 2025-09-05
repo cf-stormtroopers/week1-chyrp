@@ -1,145 +1,149 @@
-import { useState, useEffect, useRef } from "react";
+"use client";
+
+import { useListPostsPostsGet } from "../api/generated";
+import { useAuthStore } from "../state/auth";
+import dayjs from "dayjs";
+import Markdown from "react-markdown";
+import Layout from "../components/Layout";
+import { useState } from "react";
+import { convertUrlToAbsolute } from "../api/axios";
+import remarkGfm from "remark-gfm";
+import "github-markdown-css/github-markdown.css";
+
 
 export default function HomePage() {
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [openDropdown, setOpenDropdown] = useState<"recent" | "preview" | "archive" | null>(null);
+  const authStore = useAuthStore();
+  const [searchText, setSearchText] = useState("");
 
-  // Store refs for dropdowns
-  const dropdownRefs = {
-    recent: useRef<HTMLDivElement>(null),
-    preview: useRef<HTMLDivElement>(null),
-    archive: useRef<HTMLDivElement>(null),
-  };
+  const { data, isLoading, error } = useListPostsPostsGet();
+  const posts = data ?? [];
 
-  // Close dropdown if click happens outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      const target = event.target as Node;
-      if (
-        openDropdown &&
-        dropdownRefs[openDropdown] &&
-        dropdownRefs[openDropdown]?.current &&
-        !dropdownRefs[openDropdown]?.current?.contains(target)
-      ) {
-        setOpenDropdown(null);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [openDropdown]);
+  // fuse.js search for posts by search text
+  const filteredPosts = posts.filter((post) => {
+    if (!searchText) return true;
+    const lowerSearchText = searchText.toLowerCase();
+    return (
+      post.title?.toLowerCase().includes(lowerSearchText) ||
+      post.content?.toLowerCase().includes(lowerSearchText) ||
+      post.author_name?.toLowerCase().includes(lowerSearchText) ||
+      post.tags?.some((tag) =>
+        (tag.name as string).toLowerCase().includes(lowerSearchText)
+      )
+    );
+  });
 
-  return (
-    <div
-      className="relative min-h-screen flex flex-col text-gray-900 bg-cover bg-center"
-      style={{ backgroundImage: "url('/blog.jpg')" }}
-    >
-      {/* Background overlay */}
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm"></div>
+  return <Layout onSearchTextChange={setSearchText}>
+    {isLoading && <p>Loading...</p>}
+    {error && (
+      <p>Failed with error {JSON.stringify(error)}</p>
+    )}
 
-      <div className="relative flex flex-col w-full min-h-screen">
-        {/* Header */}
-        <header className="p-6 bg-white/20 backdrop-blur-md text-center font-bold text-3xl text-gray-900 relative">
-          {/* Sidebar toggle button */}
-          <button
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="absolute left-4 top-1/2 transform -translate-y-1/2 px-4 py-2 rounded bg-gray-600 text-white shadow hover:bg-gray-700 transition"
-          >
-            ☰
-          </button>
-          Name of Site
-          {/* Logout button */}
-          <button className="absolute right-4 top-1/2 transform -translate-y-1/2 px-4 py-2 rounded bg-gray-600 text-white shadow hover:bg-gray-700 transition">
-            Logout
-          </button>
-        </header>
+    {filteredPosts.map((post) => {
+      const fixedContent = post.content
+        ? post.content.replace(/\\n/g, "\n") // 🔑 unescape \n into real newlines
+        : "No content available";
+      return <article
+        key={post.slug}
+        className="bg-white rounded-lg text-black shadow hover:shadow-lg transition p-6 flex flex-col w-full items-stretch"
+      >
+        <h2 className="text-xl font-bold text-black">
+          {post.title}
+        </h2>
+        <p className="text-black">
+          Published on {dayjs(post.published_at).format("MMMM D, YYYY")}
+        </p>
+        <span className="text-black">by {post.author_name}</span>
 
-        {/* Sidebar */}
-        {sidebarOpen && (
-          <div
-            className="absolute inset-0 bg-black/50"
-            onClick={() => setSidebarOpen(false)}
-          ></div>
-        )}
-
-        {/* Sidebar (neutral colors, rounded, centered vertically) */}
-        <div
-          className={`absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/30 backdrop-blur-md shadow-lg rounded-lg p-4 flex flex-col space-y-3 transition-transform duration-300 ease-in-out ${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          }`}
-        >
-          <button className="px-4 py-2 rounded-lg bg-gray-500 text-white font-semibold shadow hover:shadow-lg hover:bg-gray-600 transition">
-            Blog
-          </button>
-          <button className="px-4 py-2 rounded-lg bg-gray-500 text-white font-semibold shadow hover:shadow-lg hover:bg-gray-600 transition">
-            Admin
-          </button>
-          <button className="px-4 py-2 rounded-lg bg-gray-500 text-white font-semibold shadow hover:shadow-lg hover:bg-gray-600 transition">
-            Controls
-          </button>
+        <div className="my-4 flex flex-col gap-4">
+          {
+            post.media_type === "file" && post.media_url && (
+              <a
+                href={convertUrlToAbsolute(post.media_url)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-blue-800 text-lg font-semibold hover:underline break-all"
+              >
+                Download File &#128190; &rarr;
+              </a>
+            )
+          }
+          {
+            post.media_type === "photo" && post.media_url && (
+              <img
+                src={convertUrlToAbsolute(post.media_url)}
+                alt={post.title ?? "Post image"}
+                className="w-full h-auto mb-4 rounded"
+              />
+            )
+          }
+          {
+            post.media_type === "video" && post.media_url && (
+              <video
+                src={convertUrlToAbsolute(post.media_url)}
+                controls
+                className="w-full h-auto mb-4 rounded"
+              />
+            )
+          }
+          {post.media_type === "audio" && post.media_url && (
+            <audio
+              src={convertUrlToAbsolute(post.media_url)}
+              controls
+              className="w-full h-auto mb-4 rounded"
+            />
+          )}
+          {
+            post.link_url && <a
+              href={post.link_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-blue-800 text-lg font-semibold hover:underline break-all"
+            >
+              {post.link_url}
+            </a>
+          }
+          {post.feather_type !== "quote" &&
+            <div className="markdown-body bg-white! text-black!">
+              <Markdown remarkPlugins={[remarkGfm]}>
+                {fixedContent}
+              </Markdown>
+            </div>}
+          {post.feather_type === "quote" &&
+            <div className="bg-gray-100 p-4 rounded flex flex-col gap-0">
+              <blockquote className="border-l-4 border-gray-300 pl-4 italic text-gray-600">
+                {post.content ? post.content : "No content available"}
+              </blockquote>
+              {/* source */}
+              {post.quote_source && <cite className="not-italic block text-left text-gray-500 mt-2">— {post.quote_source}</cite>}
+            </div>
+          }
         </div>
+        <div className="flex space-x-4 text-sm text-gray-500 mt-2">
+          {authStore.extensions.likes && <span>
+            <button className="mr-1">
+              ❤️
+            </button>
+            {post.likes_count ?? 0}</span>}
+          {authStore.extensions.views && <span>
+            <button className="mr-1">
+              👁️
+            </button>
+            {post.view_count ?? 0}</span>}
 
-        {/* Main content */}
-        <main className="flex-grow flex flex-col items-center justify-start mt-8 gap-12">
-          {/* Top buttons row */}
-          <div className="flex gap-12">
-            {/* Recent Posts */}
-            <div ref={dropdownRefs.recent} className="relative">
-              <button
-                onClick={() =>
-                  setOpenDropdown(openDropdown === "recent" ? null : "recent")
-                }
-                className="px-8 py-4 rounded-lg bg-white/20 backdrop-blur-md text-black text-lg font-bold shadow hover:shadow-lg hover:scale-105 transition"
+        </div>
+        {authStore.extensions.tags && post.tags && post.tags.length > 0 && (
+          <div className="mt-2">
+            {post.tags.map((tag) => (
+              <span
+                key={tag.name as string}
+                className="inline-block bg-gray-200 text-gray-800 text-xs px-2 py-1 rounded-full mr-2"
               >
-                Recent Posts
-              </button>
-              {openDropdown === "recent" && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white/80 backdrop-blur-md shadow rounded-lg p-2">
-                  <p className="px-3 py-2 hover:bg-gray-200 rounded">Post 1</p>
-                  <p className="px-3 py-2 hover:bg-gray-200 rounded">Post 2</p>
-                  <p className="px-3 py-2 hover:bg-gray-200 rounded">Post 3</p>
-                </div>
-              )}
-            </div>
-
-            {/* Preview */}
-            <div ref={dropdownRefs.preview} className="relative">
-              <button
-                onClick={() =>
-                  setOpenDropdown(openDropdown === "preview" ? null : "preview")
-                }
-                className="px-8 py-4 rounded-lg bg-white/20 backdrop-blur-md text-black text-lg font-bold shadow hover:shadow-lg hover:scale-105 transition"
-              >
-                Preview
-              </button>
-              {openDropdown === "preview" && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white/80 backdrop-blur-md shadow rounded-lg p-2">
-                  <p className="px-3 py-2 hover:bg-gray-200 rounded">Preview 1</p>
-                  <p className="px-3 py-2 hover:bg-gray-200 rounded">Preview 2</p>
-                </div>
-              )}
-            </div>
-
-            {/* Archive */}
-            <div ref={dropdownRefs.archive} className="relative">
-              <button
-                onClick={() =>
-                  setOpenDropdown(openDropdown === "archive" ? null : "archive")
-                }
-                className="px-8 py-4 rounded-lg bg-white/20 backdrop-blur-md text-black text-lg font-bold shadow hover:shadow-lg hover:scale-105 transition"
-              >
-                Archive
-              </button>
-              {openDropdown === "archive" && (
-                <div className="absolute top-full left-0 mt-2 w-48 bg-white/80 backdrop-blur-md shadow rounded-lg p-2">
-                  <p className="px-3 py-2 hover:bg-gray-200 rounded">2023</p>
-                  <p className="px-3 py-2 hover:bg-gray-200 rounded">2022</p>
-                  <p className="px-3 py-2 hover:bg-gray-200 rounded">2021</p>
-                </div>
-              )}
-            </div>
+                #{tag.name as string}
+              </span>
+            ))}
           </div>
-        </main>
-      </div>
-    </div>
-  );
+        )}
+      </article>
+    })}
+  </Layout>
 }
