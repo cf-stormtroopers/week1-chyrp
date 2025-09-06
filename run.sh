@@ -12,6 +12,7 @@ SECRET_KEY=$(openssl rand -hex 32)
 DEBUG=True
 HOST=0.0.0.0
 PORT=8000
+ALLOWED_HOSTS=http://localhost:3000
 
 # Session Settings
 SESSION_EXPIRE_HOURS=24
@@ -21,6 +22,12 @@ VITE_API_BASE_URL=http://localhost:8000
 EOF
 echo ".env file created ✅"
 fi
+
+cd frontend
+cat > .env <<EOF
+VITE_API_BASE_URL=http://localhost:8000
+EOF
+cd ..
 
 # --- Backend ---
 echo "Installing backend deps..."
@@ -41,7 +48,7 @@ echo "Building frontend..."
 npm run build
 
 echo "Starting frontend dev server..."
-npm run dev &
+npm run serve &
 FRONTEND_PID=$!
 cd ..
 
@@ -53,7 +60,7 @@ cleanup() {
 trap cleanup EXIT
 
 echo "✅ Both frontend and backend running."
-echo "Frontend: http://localhost:5173"
+echo "Frontend: http://localhost:3000"
 echo "Backend:  http://localhost:8000"
 
 # Keep script running to maintain background jobs
