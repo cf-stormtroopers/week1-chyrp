@@ -1,0 +1,20 @@
+services:
+  backend:
+    build:
+      context: ./backend   # path to your Python/Poetry backend
+      dockerfile: Dockerfile
+    env_file: .env
+    ports:
+      - "8009:8000"   # backend runs inside at 8000, exposed on 8007
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend  # path to your Vite/React frontend
+      dockerfile: Dockerfile
+    env_file: .env
+    ports:
+      - "3009:80"     # serve frontend at http://localhost:3000
+    depends_on:
+      - backend
+    restart: unless-stopped

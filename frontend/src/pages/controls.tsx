@@ -55,24 +55,24 @@ export default function ControlsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-800 flex items-center justify-center p-6">
-      <div className="bg-black shadow-lg rounded-lg p-8 w-full max-w-md space-y-6">
+    <div className="min-h-screen bg-primary flex items-center justify-center text-black p-6">
+      <div className="bg-white shadow-lg rounded-lg p-8 w-full max-w-md space-y-6">
         {/* Back Button */}
         <div className="flex justify-end">
           <button
             onClick={() => setLocation("/")}
-            className="text-gray-500 hover:text-red-500 text-xl font-bold"
+            className="text-black hover:text-dark text-2xl font-bold"
           >
             ✕
           </button>
         </div>
 
-        <h2 className="text-2xl font-bold mb-6">Account</h2>
+        <h2 className="text-4xl font-bold mb-6">Account</h2>
 
         <form className="space-y-4" onSubmit={handleUpdate}>
           {/* Email */}
           <div className="cursor-not-allowed">
-            <label className="block font-medium mb-1">Email</label>
+            <label className="block font-medium text-dark mb-1">Email</label>
             <input
               type="email"
               value={email}
@@ -84,7 +84,7 @@ export default function ControlsPage() {
 
           {/* Full name */}
           <div>
-            <label className="block font-medium mb-1">Full name</label>
+            <label className="block font-medium text-black mb-1">Full name</label>
             <input
               type="text"
               value={fullName}
@@ -101,7 +101,7 @@ export default function ControlsPage() {
               <button
                 type="button"
                 onClick={() => setChangePassword(false)}
-                className="text-sm text-gray-400 underline mb-4"
+                className="text-sm text-dark underline mb-4"
               >
                 Cancel
               </button>
@@ -127,7 +127,7 @@ export default function ControlsPage() {
             <button
               type="button"
               onClick={() => setChangePassword(true)}
-              className="text-sm text-gray-400 underline"
+              className="text-sm text-dark underline"
             >
               Change Password
             </button>
@@ -136,7 +136,7 @@ export default function ControlsPage() {
           {/* Update button */}
           <button
             type="submit"
-            className="w-full bg-gray-800 text-white py-2 rounded hover:bg-gray-700"
+            className="w-full bg-primary text-dark text-lg font-bold py-2 rounded hover:bg-secondary"
           >
             Update
           </button>

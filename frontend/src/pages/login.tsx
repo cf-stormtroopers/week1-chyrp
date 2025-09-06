@@ -36,9 +36,9 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-black p-8 rounded-lg shadow-md w-80">
-        <h2 className="text-2xl font-bold text-center mb-6 text-white">
+    <div className="min-h-screen flex items-center justify-center bg-primary p-8">
+      <div className="bg-white text-black p-8 rounded-lg shadow-md md:min-w-90">
+        <h2 className="text-3xl font-bold text-left mb-6">
           Login
         </h2>
         <form

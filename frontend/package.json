@@ -8,16 +8,20 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "orval": "orval --config orval.config.cjs"
+    "orval": "orval --config orval.config.cjs",
+    "serve": "serve -s dist -l 3000"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.12",
     "axios": "^1.11.0",
+    "dayjs": "^1.11.18",
     "easymde": "^2.20.0",
     "fuse.js": "^7.1.0",
     "github-markdown-css": "^5.8.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
+    "react-intersection-observer": "^9.16.0",
+    "react-markdown": "^10.1.0",
     "react-simplemde-editor": "^5.2.0",
     "remark-gfm": "^4.0.1",
     "swr": "^2.3.6",
@@ -36,6 +40,7 @@
     "eslint-plugin-react-refresh": "^0.4.20",
     "globals": "^16.3.0",
     "orval": "^7.11.2",
+    "serve": "^14.2.5",
     "typescript": "~5.8.3",
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2"

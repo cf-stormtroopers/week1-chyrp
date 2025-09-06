@@ -1,6 +1,6 @@
 import Axios, { AxiosError, type AxiosRequestConfig } from "axios";
 
-export const BASE_URL = "http://100.109.46.43:8007";
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
 
 export const AXIOS_INSTANCE = Axios.create({
     baseURL: BASE_URL,

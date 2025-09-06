@@ -18,7 +18,7 @@ const MarkdownEditorWrapper = ({ value = "", onChange, placeholder = "Write here
     return (
         <div className="text-black">
             <SimpleMDE
-                defaultValue={value}
+                value={value}
                 onChange={onChange}
                 options={memoizedOptions}
             />

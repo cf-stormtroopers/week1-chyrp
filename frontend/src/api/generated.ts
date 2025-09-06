@@ -161,6 +161,23 @@ export interface ExtensionInfo {
 }
 
 /**
+ * Model for extension status update request.
+ */
+export interface ExtensionStatusRequest {
+  active: boolean;
+}
+
+/**
+ * Model for extension status update response.
+ */
+export interface ExtensionStatusResponse {
+  success: boolean;
+  message: string;
+  extension_id: number;
+  is_active: boolean;
+}
+
+/**
  * Model for extensions list response.
  */
 export interface ExtensionsResponse {
@@ -362,6 +379,33 @@ export interface PostUpdate {
   markdown_content?: PostUpdateMarkdownContent;
 }
 
+export type SettingsUpdateRequestBlogTitle = string | null;
+
+export type SettingsUpdateRequestShowSearch = boolean | null;
+
+export type SettingsUpdateRequestShowMarkdown = boolean | null;
+
+export type SettingsUpdateRequestShowRegistration = boolean | null;
+
+/**
+ * Model for settings update request.
+ */
+export interface SettingsUpdateRequest {
+  blog_title?: SettingsUpdateRequestBlogTitle;
+  show_search?: SettingsUpdateRequestShowSearch;
+  show_markdown?: SettingsUpdateRequestShowMarkdown;
+  show_registration?: SettingsUpdateRequestShowRegistration;
+}
+
+export type SettingsUpdateResponseUpdatedSettings = { [key: string]: unknown };
+
+/**
+ * Model for settings update response.
+ */
+export interface SettingsUpdateResponse {
+  updated_settings: SettingsUpdateResponseUpdatedSettings;
+}
+
 export type SiteInfoResponseUser = UserRead | null;
 
 export type SiteInfoResponseTheme = string | null;
@@ -379,6 +423,7 @@ export interface SiteInfoResponse {
   theme: SiteInfoResponseTheme;
   settings: SiteInfoResponseSettings;
   features: string[];
+  permissions: string[];
 }
 
 /**
@@ -420,6 +465,8 @@ export type UserCreateDisplayName = string | null;
 
 export type UserCreateBio = string | null;
 
+export type UserCreateRoleName = string | null;
+
 /**
  * Model for user creation.
  */
@@ -432,6 +479,7 @@ export interface UserCreate {
   password: string;
   display_name?: UserCreateDisplayName;
   bio?: UserCreateBio;
+  role_name?: UserCreateRoleName;
 }
 
 /**
@@ -448,6 +496,8 @@ export type UserReadBio = string | null;
 
 export type UserReadAvatarUrl = string | null;
 
+export type UserReadRoleName = string | null;
+
 /**
  * Model for user response (without sensitive data).
  */
@@ -458,6 +508,8 @@ export interface UserRead {
   display_name: UserReadDisplayName;
   bio: UserReadBio;
   avatar_url: UserReadAvatarUrl;
+  role_id: number;
+  role_name?: UserReadRoleName;
   created_at: string;
   updated_at: string;
 }
@@ -470,6 +522,10 @@ export type UserUpdateAvatarUrl = string | null;
 
 export type UserUpdatePassword = string | null;
 
+export type UserUpdatePasswordHash = string | null;
+
+export type UserUpdateRoleName = string | null;
+
 /**
  * Model for user updates.
  */
@@ -478,6 +534,8 @@ export interface UserUpdate {
   bio?: UserUpdateBio;
   avatar_url?: UserUpdateAvatarUrl;
   password?: UserUpdatePassword;
+  password_hash?: UserUpdatePasswordHash;
+  role_name?: UserUpdateRoleName;
 }
 
 export type ValidationErrorLocItem = string | number;
@@ -604,6 +662,18 @@ limit?: number;
 export type GetExtensionsSiteExtensionsGetParams = {
 active_only?: boolean;
 };
+
+export type GetAllRolesRolesGet200Item = { [key: string]: unknown };
+
+export type CreateRoleRolesPostBody = { [key: string]: unknown };
+
+export type CreateRoleRolesPost200 = { [key: string]: unknown };
+
+export type UpdateRoleRolesRoleIdPutBody = { [key: string]: unknown };
+
+export type UpdateRoleRolesRoleIdPut200 = { [key: string]: unknown };
+
+export type GetAllPermissionsRolesPermissionsGet200Item = { [key: string]: unknown };
 
 type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
@@ -834,7 +904,7 @@ export const useLogoutAllSessionsAuthLogoutAllPost = <TError = unknown>(
 }
 
 /**
- * List users with pagination.
+ * List users with pagination (admin only).
  * @summary List Users
  */
 export const listUsersUsersGet = (
@@ -875,7 +945,54 @@ export const useListUsersUsersGet = <TError = HTTPValidationError>(
 }
 
 /**
- * Get user by ID.
+ * Create a new user (admin only).
+ * @summary Add User
+ */
+export const addUserUsersPost = (
+    userCreate: UserCreate,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<UserRead>(
+    {url: `/users/`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: userCreate
+    },
+    options);
+  }
+
+
+
+export const getAddUserUsersPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: UserCreate }): Promise<UserRead> => {
+    return addUserUsersPost(arg, options);
+  }
+}
+export const getAddUserUsersPostMutationKey = () => [`/users/`] as const;
+
+export type AddUserUsersPostMutationResult = NonNullable<Awaited<ReturnType<typeof addUserUsersPost>>>
+export type AddUserUsersPostMutationError = HTTPValidationError
+
+/**
+ * @summary Add User
+ */
+export const useAddUserUsersPost = <TError = HTTPValidationError>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof addUserUsersPost>>, TError, Key, UserCreate, Awaited<ReturnType<typeof addUserUsersPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
+) => {
+
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const swrKey = swrOptions?.swrKey ?? getAddUserUsersPostMutationKey();
+  const swrFn = getAddUserUsersPostMutationFetcher(requestOptions);
+
+  const query = useSWRMutation(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Get user by ID (own profile or admin).
  * @summary Get User
  */
 export const getUserUsersUserIdGet = (
@@ -1102,39 +1219,39 @@ export const useCreatePostPostsPost = <TError = HTTPValidationError>(
 }
 
 /**
- * Get single post details with categories, tags, likes, and view count.
+ * Get single post details by slug with categories, tags, likes, and view count.
 
-Increments view count for public posts.
+Automatically increments view count when post is accessed.
 Private/draft posts require authentication.
  * @summary Get Post
  */
-export const getPostPostsPostIdGet = (
-    postId: string,
+export const getPostPostsSlugGet = (
+    slug: string,
  options?: SecondParameter<typeof customInstance>) => {
     return customInstance<PostRead>(
-    {url: `/posts/${postId}`, method: 'GET'
+    {url: `/posts/${slug}`, method: 'GET'
     },
     options);
   }
 
 
 
-export const getGetPostPostsPostIdGetKey = (postId: string,) => [`/posts/${postId}`] as const;
+export const getGetPostPostsSlugGetKey = (slug: string,) => [`/posts/${slug}`] as const;
 
-export type GetPostPostsPostIdGetQueryResult = NonNullable<Awaited<ReturnType<typeof getPostPostsPostIdGet>>>
-export type GetPostPostsPostIdGetQueryError = HTTPValidationError
+export type GetPostPostsSlugGetQueryResult = NonNullable<Awaited<ReturnType<typeof getPostPostsSlugGet>>>
+export type GetPostPostsSlugGetQueryError = HTTPValidationError
 
 /**
  * @summary Get Post
  */
-export const useGetPostPostsPostIdGet = <TError = HTTPValidationError>(
-  postId: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getPostPostsPostIdGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
+export const useGetPostPostsSlugGet = <TError = HTTPValidationError>(
+  slug: string, options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getPostPostsSlugGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
 ) => {
   const {swr: swrOptions, request: requestOptions} = options ?? {}
 
-  const isEnabled = swrOptions?.enabled !== false && !!(postId)
-  const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetPostPostsPostIdGetKey(postId) : null);
-  const swrFn = () => getPostPostsPostIdGet(postId, requestOptions)
+  const isEnabled = swrOptions?.enabled !== false && !!(slug)
+  const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetPostPostsSlugGetKey(slug) : null);
+  const swrFn = () => getPostPostsSlugGet(slug, requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
@@ -1326,6 +1443,53 @@ export const useUnlikePostPostsPostIdLikeDelete = <TError = HTTPValidationError>
 
   const swrKey = swrOptions?.swrKey ?? getUnlikePostPostsPostIdLikeDeleteMutationKey(postId);
   const swrFn = getUnlikePostPostsPostIdLikeDeleteMutationFetcher(postId, requestOptions);
+
+  const query = useSWRMutation(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Mark a post as viewed. Increments view_count.
+
+No authentication required - tracks all views.
+ * @summary Mark Post Viewed
+ */
+export const markPostViewedPostsPostIdViewPost = (
+    postId: string,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/posts/${postId}/view`, method: 'POST'
+    },
+    options);
+  }
+
+
+
+export const getMarkPostViewedPostsPostIdViewPostMutationFetcher = (postId: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
+    return markPostViewedPostsPostIdViewPost(postId, options);
+  }
+}
+export const getMarkPostViewedPostsPostIdViewPostMutationKey = (postId: string,) => [`/posts/${postId}/view`] as const;
+
+export type MarkPostViewedPostsPostIdViewPostMutationResult = NonNullable<Awaited<ReturnType<typeof markPostViewedPostsPostIdViewPost>>>
+export type MarkPostViewedPostsPostIdViewPostMutationError = HTTPValidationError
+
+/**
+ * @summary Mark Post Viewed
+ */
+export const useMarkPostViewedPostsPostIdViewPost = <TError = HTTPValidationError>(
+  postId: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof markPostViewedPostsPostIdViewPost>>, TError, Key, Arguments, Awaited<ReturnType<typeof markPostViewedPostsPostIdViewPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
+) => {
+
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const swrKey = swrOptions?.swrKey ?? getMarkPostViewedPostsPostIdViewPostMutationKey(postId);
+  const swrFn = getMarkPostViewedPostsPostIdViewPostMutationFetcher(postId, requestOptions);
 
   const query = useSWRMutation(swrKey, swrFn, swrOptions)
 
@@ -2585,6 +2749,334 @@ export const useGetActiveThemeSiteThemeGet = <TError = unknown>(
   const isEnabled = swrOptions?.enabled !== false
   const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetActiveThemeSiteThemeGetKey() : null);
   const swrFn = () => getActiveThemeSiteThemeGet(requestOptions)
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Update the active status of an extension.
+
+Allows enabling or disabling extensions. Requires admin permissions.
+ * @summary Update Extension Status
+ */
+export const updateExtensionStatusSiteExtensionExtensionSlugPut = (
+    extensionSlug: string,
+    extensionStatusRequest: ExtensionStatusRequest,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<ExtensionStatusResponse>(
+    {url: `/site/extension/${extensionSlug}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: extensionStatusRequest
+    },
+    options);
+  }
+
+
+
+export const getUpdateExtensionStatusSiteExtensionExtensionSlugPutMutationFetcher = (extensionSlug: string, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: ExtensionStatusRequest }): Promise<ExtensionStatusResponse> => {
+    return updateExtensionStatusSiteExtensionExtensionSlugPut(extensionSlug, arg, options);
+  }
+}
+export const getUpdateExtensionStatusSiteExtensionExtensionSlugPutMutationKey = (extensionSlug: string,) => [`/site/extension/${extensionSlug}`] as const;
+
+export type UpdateExtensionStatusSiteExtensionExtensionSlugPutMutationResult = NonNullable<Awaited<ReturnType<typeof updateExtensionStatusSiteExtensionExtensionSlugPut>>>
+export type UpdateExtensionStatusSiteExtensionExtensionSlugPutMutationError = HTTPValidationError
+
+/**
+ * @summary Update Extension Status
+ */
+export const useUpdateExtensionStatusSiteExtensionExtensionSlugPut = <TError = HTTPValidationError>(
+  extensionSlug: string, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updateExtensionStatusSiteExtensionExtensionSlugPut>>, TError, Key, ExtensionStatusRequest, Awaited<ReturnType<typeof updateExtensionStatusSiteExtensionExtensionSlugPut>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
+) => {
+
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const swrKey = swrOptions?.swrKey ?? getUpdateExtensionStatusSiteExtensionExtensionSlugPutMutationKey(extensionSlug);
+  const swrFn = getUpdateExtensionStatusSiteExtensionExtensionSlugPutMutationFetcher(extensionSlug, requestOptions);
+
+  const query = useSWRMutation(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Update site settings.
+
+Allows updating of blog title and feature flags like search, markdown, and registration.
+Requires authentication.
+ * @summary Update Settings
+ */
+export const updateSettingsSiteSettingsPatch = (
+    settingsUpdateRequest: SettingsUpdateRequest,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<SettingsUpdateResponse>(
+    {url: `/site/settings`, method: 'PATCH',
+      headers: {'Content-Type': 'application/json', },
+      data: settingsUpdateRequest
+    },
+    options);
+  }
+
+
+
+export const getUpdateSettingsSiteSettingsPatchMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: SettingsUpdateRequest }): Promise<SettingsUpdateResponse> => {
+    return updateSettingsSiteSettingsPatch(arg, options);
+  }
+}
+export const getUpdateSettingsSiteSettingsPatchMutationKey = () => [`/site/settings`] as const;
+
+export type UpdateSettingsSiteSettingsPatchMutationResult = NonNullable<Awaited<ReturnType<typeof updateSettingsSiteSettingsPatch>>>
+export type UpdateSettingsSiteSettingsPatchMutationError = HTTPValidationError
+
+/**
+ * @summary Update Settings
+ */
+export const useUpdateSettingsSiteSettingsPatch = <TError = HTTPValidationError>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updateSettingsSiteSettingsPatch>>, TError, Key, SettingsUpdateRequest, Awaited<ReturnType<typeof updateSettingsSiteSettingsPatch>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
+) => {
+
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const swrKey = swrOptions?.swrKey ?? getUpdateSettingsSiteSettingsPatchMutationKey();
+  const swrFn = getUpdateSettingsSiteSettingsPatchMutationFetcher(requestOptions);
+
+  const query = useSWRMutation(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Get all roles with their permissions.
+Requires admin permissions.
+ * @summary Get All Roles
+ */
+export const getAllRolesRolesGet = (
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<GetAllRolesRolesGet200Item[]>(
+    {url: `/roles/`, method: 'GET'
+    },
+    options);
+  }
+
+
+
+export const getGetAllRolesRolesGetKey = () => [`/roles/`] as const;
+
+export type GetAllRolesRolesGetQueryResult = NonNullable<Awaited<ReturnType<typeof getAllRolesRolesGet>>>
+export type GetAllRolesRolesGetQueryError = unknown
+
+/**
+ * @summary Get All Roles
+ */
+export const useGetAllRolesRolesGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getAllRolesRolesGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
+) => {
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const isEnabled = swrOptions?.enabled !== false
+  const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetAllRolesRolesGetKey() : null);
+  const swrFn = () => getAllRolesRolesGet(requestOptions)
+
+  const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Create a new role with permissions.
+Expects: {"name": "role_name", "description": "desc", "permissions": ["perm1", "perm2"]}
+Requires admin permissions.
+ * @summary Create Role
+ */
+export const createRoleRolesPost = (
+    createRoleRolesPostBody: CreateRoleRolesPostBody,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<CreateRoleRolesPost200>(
+    {url: `/roles/`, method: 'POST',
+      headers: {'Content-Type': 'application/json', },
+      data: createRoleRolesPostBody
+    },
+    options);
+  }
+
+
+
+export const getCreateRoleRolesPostMutationFetcher = ( options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: CreateRoleRolesPostBody }): Promise<CreateRoleRolesPost200> => {
+    return createRoleRolesPost(arg, options);
+  }
+}
+export const getCreateRoleRolesPostMutationKey = () => [`/roles/`] as const;
+
+export type CreateRoleRolesPostMutationResult = NonNullable<Awaited<ReturnType<typeof createRoleRolesPost>>>
+export type CreateRoleRolesPostMutationError = HTTPValidationError
+
+/**
+ * @summary Create Role
+ */
+export const useCreateRoleRolesPost = <TError = HTTPValidationError>(
+   options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof createRoleRolesPost>>, TError, Key, CreateRoleRolesPostBody, Awaited<ReturnType<typeof createRoleRolesPost>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
+) => {
+
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const swrKey = swrOptions?.swrKey ?? getCreateRoleRolesPostMutationKey();
+  const swrFn = getCreateRoleRolesPostMutationFetcher(requestOptions);
+
+  const query = useSWRMutation(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Update a role's permissions.
+Expects: {"permissions": ["perm1", "perm2"]}
+Requires admin permissions.
+ * @summary Update Role
+ */
+export const updateRoleRolesRoleIdPut = (
+    roleId: number,
+    updateRoleRolesRoleIdPutBody: UpdateRoleRolesRoleIdPutBody,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<UpdateRoleRolesRoleIdPut200>(
+    {url: `/roles/${roleId}`, method: 'PUT',
+      headers: {'Content-Type': 'application/json', },
+      data: updateRoleRolesRoleIdPutBody
+    },
+    options);
+  }
+
+
+
+export const getUpdateRoleRolesRoleIdPutMutationFetcher = (roleId: number, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, { arg }: { arg: UpdateRoleRolesRoleIdPutBody }): Promise<UpdateRoleRolesRoleIdPut200> => {
+    return updateRoleRolesRoleIdPut(roleId, arg, options);
+  }
+}
+export const getUpdateRoleRolesRoleIdPutMutationKey = (roleId: number,) => [`/roles/${roleId}`] as const;
+
+export type UpdateRoleRolesRoleIdPutMutationResult = NonNullable<Awaited<ReturnType<typeof updateRoleRolesRoleIdPut>>>
+export type UpdateRoleRolesRoleIdPutMutationError = HTTPValidationError
+
+/**
+ * @summary Update Role
+ */
+export const useUpdateRoleRolesRoleIdPut = <TError = HTTPValidationError>(
+  roleId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof updateRoleRolesRoleIdPut>>, TError, Key, UpdateRoleRolesRoleIdPutBody, Awaited<ReturnType<typeof updateRoleRolesRoleIdPut>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
+) => {
+
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const swrKey = swrOptions?.swrKey ?? getUpdateRoleRolesRoleIdPutMutationKey(roleId);
+  const swrFn = getUpdateRoleRolesRoleIdPutMutationFetcher(roleId, requestOptions);
+
+  const query = useSWRMutation(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Delete a role.
+Cannot delete the 'public' role.
+Requires admin permissions.
+ * @summary Delete Role
+ */
+export const deleteRoleRolesRoleIdDelete = (
+    roleId: number,
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<unknown>(
+    {url: `/roles/${roleId}`, method: 'DELETE'
+    },
+    options);
+  }
+
+
+
+export const getDeleteRoleRolesRoleIdDeleteMutationFetcher = (roleId: number, options?: SecondParameter<typeof customInstance>) => {
+  return (_: Key, __: { arg: Arguments }): Promise<unknown> => {
+    return deleteRoleRolesRoleIdDelete(roleId, options);
+  }
+}
+export const getDeleteRoleRolesRoleIdDeleteMutationKey = (roleId: number,) => [`/roles/${roleId}`] as const;
+
+export type DeleteRoleRolesRoleIdDeleteMutationResult = NonNullable<Awaited<ReturnType<typeof deleteRoleRolesRoleIdDelete>>>
+export type DeleteRoleRolesRoleIdDeleteMutationError = HTTPValidationError
+
+/**
+ * @summary Delete Role
+ */
+export const useDeleteRoleRolesRoleIdDelete = <TError = HTTPValidationError>(
+  roleId: number, options?: { swr?:SWRMutationConfiguration<Awaited<ReturnType<typeof deleteRoleRolesRoleIdDelete>>, TError, Key, Arguments, Awaited<ReturnType<typeof deleteRoleRolesRoleIdDelete>>> & { swrKey?: string }, request?: SecondParameter<typeof customInstance>}
+) => {
+
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const swrKey = swrOptions?.swrKey ?? getDeleteRoleRolesRoleIdDeleteMutationKey(roleId);
+  const swrFn = getDeleteRoleRolesRoleIdDeleteMutationFetcher(roleId, requestOptions);
+
+  const query = useSWRMutation(swrKey, swrFn, swrOptions)
+
+  return {
+    swrKey,
+    ...query
+  }
+}
+
+/**
+ * Get all available permissions.
+Requires admin permissions.
+ * @summary Get All Permissions
+ */
+export const getAllPermissionsRolesPermissionsGet = (
+    
+ options?: SecondParameter<typeof customInstance>) => {
+    return customInstance<GetAllPermissionsRolesPermissionsGet200Item[]>(
+    {url: `/roles/permissions`, method: 'GET'
+    },
+    options);
+  }
+
+
+
+export const getGetAllPermissionsRolesPermissionsGetKey = () => [`/roles/permissions`] as const;
+
+export type GetAllPermissionsRolesPermissionsGetQueryResult = NonNullable<Awaited<ReturnType<typeof getAllPermissionsRolesPermissionsGet>>>
+export type GetAllPermissionsRolesPermissionsGetQueryError = unknown
+
+/**
+ * @summary Get All Permissions
+ */
+export const useGetAllPermissionsRolesPermissionsGet = <TError = unknown>(
+   options?: { swr?:SWRConfiguration<Awaited<ReturnType<typeof getAllPermissionsRolesPermissionsGet>>, TError> & { swrKey?: Key, enabled?: boolean }, request?: SecondParameter<typeof customInstance> }
+) => {
+  const {swr: swrOptions, request: requestOptions} = options ?? {}
+
+  const isEnabled = swrOptions?.enabled !== false
+  const swrKey = swrOptions?.swrKey ?? (() => isEnabled ? getGetAllPermissionsRolesPermissionsGetKey() : null);
+  const swrFn = () => getAllPermissionsRolesPermissionsGet(requestOptions)
 
   const query = useSwr<Awaited<ReturnType<typeof swrFn>>, TError>(swrKey, swrFn, swrOptions)
 
